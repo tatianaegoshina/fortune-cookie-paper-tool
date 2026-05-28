@@ -16,27 +16,27 @@ const palette = [
   { name: "pink", hex: "#FBB1CC" },
   { name: "plum", hex: "#BC008D" },
   { name: "bright blue", hex: "#289BFF" },
-  { name: "green", hex: "#046840" },
+  { name: "green", hex: "#05A95E" },
 ];
 
 const backgroundPalette = [...palette, { name: "transparent", hex: "transparent" }];
 const corners = ["tl", "tr", "br", "bl"];
-const textDarkColors = new Set(["white", "light grey", "pink"]);
+const textDarkColors = new Set(["white", "light grey", "pink", "orange", "green"]);
 
 const defaultState = {
-  frame: framePresets[0],
-  paper: { mode: "fill", width: 900, height: 1200 },
-  background: palette[0],
-  front: palette[0],
-  back: palette[6],
+  frame: framePresets[3],
+  paper: { mode: "fill", width: 1480, height: 1480 },
+  background: palette[4],
+  front: palette[10],
+  back: palette[0],
   rotation: 0,
-  text: "Text may be\nhere",
-  textSize: 108,
+  text: "PEEL",
+  textSize: 260,
   folds: {
-    tl: { enabled: true, x: 0.36, y: 0.22 },
-    tr: { enabled: false, x: 0.22, y: 0.26 },
-    br: { enabled: true, x: 0.28, y: 0.18 },
-    bl: { enabled: false, x: 0.22, y: 0.24 },
+    tl: { enabled: false, x: 0.24, y: 0.24 },
+    tr: { enabled: false, x: 0.24, y: 0.24 },
+    br: { enabled: false, x: 0.24, y: 0.24 },
+    bl: { enabled: false, x: 0.24, y: 0.24 },
   },
 };
 
@@ -44,6 +44,7 @@ let state = cloneState(defaultState);
 let loadedImage = null;
 let imageSrc = null;
 let dragHandle = null;
+let history = [];
 
 const canvas = document.querySelector("#preview-canvas");
 const frameOptions = document.querySelector("[data-frame-options]");
@@ -55,12 +56,11 @@ const foldOptions = document.querySelector("[data-fold-options]");
 const paperWidthInput = document.querySelector("#paper-width");
 const paperHeightInput = document.querySelector("#paper-height");
 const imageInput = document.querySelector("#image-input");
-const removeImageButton = document.querySelector("[data-action='remove-image']");
 const textInput = document.querySelector("#text-input");
-const textSizeInput = document.querySelector("#text-size");
-const textSizeLabel = document.querySelector("[data-text-size-label]");
 const rotateInput = document.querySelector("#rotate-input");
 const rotationLabel = document.querySelector("[data-rotation-label]");
+const undoButton = document.querySelector("[data-action='undo']");
+const foldCount = document.querySelector("[data-fold-count]");
 
 function cloneState(source) {
   return {
@@ -78,6 +78,42 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function snapshotState() {
+  return {
+    state: cloneState(state),
+    imageSrc,
+    loadedImage,
+  };
+}
+
+function pushHistory() {
+  history.push(snapshotState());
+  if (history.length > 80) history.shift();
+  syncUndoState();
+}
+
+function syncUndoState() {
+  if (undoButton) undoButton.disabled = history.length === 0;
+}
+
+function syncFoldStatus() {
+  const count = corners.filter((corner) => state.folds[corner].enabled).length;
+  if (dragHandle) {
+    foldCount.textContent = "Shaping fold";
+  } else if (count === 1) {
+    foldCount.textContent = "1 fold in";
+  } else {
+    foldCount.textContent = `${count} folds`;
+  }
+}
+
+function applyChange(mutator, options = {}) {
+  pushHistory();
+  mutator();
+  if (options.sync !== false) syncControls();
+  renderComposition(canvas, true);
+}
+
 function getPaperSize() {
   if (state.paper.mode === "fill") {
     return { width: state.frame.width, height: state.frame.height };
@@ -90,15 +126,24 @@ function getPaperSize() {
 }
 
 function getFoldPoints(corner, fold, width, height) {
-  const offsetX = clamp(fold.x * width, 12, width * 0.78);
-  const offsetY = clamp(fold.y * height, 12, height * 0.78);
+  const inwardX = clamp(fold.x * width, 0, width * 0.82);
+  const inwardY = clamp(fold.y * height, 0, height * 0.82);
+  const distance = (inwardX * inwardX + inwardY * inwardY) / 2;
+  const offsetX = inwardX > 0 ? clamp(distance / inwardX, 12, width) : 12;
+  const offsetY = inwardY > 0 ? clamp(distance / inwardY, 12, height) : 12;
 
   if (corner === "tl") {
-    return { corner: { x: 0, y: 0 }, xPoint: { x: offsetX, y: 0 }, yPoint: { x: 0, y: offsetY } };
+    return {
+      corner: { x: 0, y: 0 },
+      tip: fold.enabled ? { x: inwardX, y: inwardY } : { x: 0, y: 0 },
+      xPoint: { x: offsetX, y: 0 },
+      yPoint: { x: 0, y: offsetY },
+    };
   }
   if (corner === "tr") {
     return {
       corner: { x: width, y: 0 },
+      tip: fold.enabled ? { x: width - inwardX, y: inwardY } : { x: width, y: 0 },
       xPoint: { x: width - offsetX, y: 0 },
       yPoint: { x: width, y: offsetY },
     };
@@ -106,6 +151,7 @@ function getFoldPoints(corner, fold, width, height) {
   if (corner === "br") {
     return {
       corner: { x: width, y: height },
+      tip: fold.enabled ? { x: width - inwardX, y: height - inwardY } : { x: width, y: height },
       xPoint: { x: width - offsetX, y: height },
       yPoint: { x: width, y: height - offsetY },
     };
@@ -113,9 +159,27 @@ function getFoldPoints(corner, fold, width, height) {
 
   return {
     corner: { x: 0, y: height },
+    tip: fold.enabled ? { x: inwardX, y: height - inwardY } : { x: 0, y: height },
     xPoint: { x: offsetX, y: height },
     yPoint: { x: 0, y: height - offsetY },
   };
+}
+
+function getInwardFromLocal(corner, local) {
+  if (corner === "tl") {
+    return { x: local.x / local.paperWidth, y: local.y / local.paperHeight };
+  }
+  if (corner === "tr") {
+    return { x: (local.paperWidth - local.x) / local.paperWidth, y: local.y / local.paperHeight };
+  }
+  if (corner === "br") {
+    return {
+      x: (local.paperWidth - local.x) / local.paperWidth,
+      y: (local.paperHeight - local.y) / local.paperHeight,
+    };
+  }
+
+  return { x: local.x / local.paperWidth, y: (local.paperHeight - local.y) / local.paperHeight };
 }
 
 function addFrontPath(ctx, width, height) {
@@ -216,19 +280,6 @@ function renderComposition(targetCanvas, showGuides) {
   ctx.rotate((state.rotation * Math.PI) / 180);
   ctx.translate(-paperWidth / 2, -paperHeight / 2);
 
-  for (const corner of corners) {
-    const fold = state.folds[corner];
-    if (!fold.enabled) continue;
-    const points = getFoldPoints(corner, fold, paperWidth, paperHeight);
-    ctx.beginPath();
-    ctx.moveTo(points.corner.x, points.corner.y);
-    ctx.lineTo(points.xPoint.x, points.xPoint.y);
-    ctx.lineTo(points.yPoint.x, points.yPoint.y);
-    ctx.closePath();
-    ctx.fillStyle = state.back.hex;
-    ctx.fill();
-  }
-
   ctx.save();
   addFrontPath(ctx, paperWidth, paperHeight);
   ctx.clip();
@@ -251,39 +302,52 @@ function renderComposition(targetCanvas, showGuides) {
   }
   ctx.restore();
 
-  if (showGuides) drawGuides(ctx, paperWidth, paperHeight);
-  ctx.restore();
-}
-
-function drawGuides(ctx, paperWidth, paperHeight) {
-  ctx.lineWidth = Math.max(1, Math.min(paperWidth, paperHeight) * 0.004);
-  ctx.strokeStyle = "rgba(0, 0, 0, 0.32)";
-  ctx.setLineDash([Math.max(6, paperWidth * 0.012), Math.max(6, paperWidth * 0.012)]);
-
   for (const corner of corners) {
     const fold = state.folds[corner];
     if (!fold.enabled) continue;
     const points = getFoldPoints(corner, fold, paperWidth, paperHeight);
     ctx.beginPath();
     ctx.moveTo(points.xPoint.x, points.xPoint.y);
+    ctx.lineTo(points.tip.x, points.tip.y);
     ctx.lineTo(points.yPoint.x, points.yPoint.y);
-    ctx.stroke();
+    ctx.closePath();
+    ctx.fillStyle = state.back.hex;
+    ctx.fill();
   }
 
-  ctx.setLineDash([]);
-  for (const corner of corners) {
-    const fold = state.folds[corner];
-    if (!fold.enabled) continue;
-    const points = getFoldPoints(corner, fold, paperWidth, paperHeight);
-    [points.xPoint, points.yPoint].forEach((point) => {
+  if (showGuides) drawGuides(ctx, paperWidth, paperHeight);
+  ctx.restore();
+}
+
+function drawGuides(ctx, paperWidth, paperHeight) {
+  const radius = Math.max(12, Math.min(paperWidth, paperHeight) * 0.018);
+
+  if (dragHandle) {
+    ctx.lineWidth = Math.max(1, Math.min(paperWidth, paperHeight) * 0.003);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.setLineDash([Math.max(6, paperWidth * 0.012), Math.max(6, paperWidth * 0.012)]);
+
+    const fold = state.folds[dragHandle.corner];
+    if (fold.enabled) {
+      const points = getFoldPoints(dragHandle.corner, fold, paperWidth, paperHeight);
       ctx.beginPath();
-      ctx.arc(point.x, point.y, Math.max(10, Math.min(paperWidth, paperHeight) * 0.014), 0, Math.PI * 2);
-      ctx.fillStyle = "#ffffff";
-      ctx.fill();
-      ctx.lineWidth = Math.max(2, Math.min(paperWidth, paperHeight) * 0.003);
-      ctx.strokeStyle = "#111111";
+      ctx.moveTo(points.xPoint.x, points.xPoint.y);
+      ctx.lineTo(points.yPoint.x, points.yPoint.y);
       ctx.stroke();
-    });
+    }
+
+    ctx.setLineDash([]);
+  }
+
+  for (const corner of corners) {
+    const points = getFoldPoints(corner, state.folds[corner], paperWidth, paperHeight);
+    ctx.beginPath();
+    ctx.arc(points.tip.x, points.tip.y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#d8d0d0";
+    ctx.fill();
+    ctx.lineWidth = Math.max(2, radius * 0.12);
+    ctx.strokeStyle = "#000000";
+    ctx.stroke();
   }
 }
 
@@ -318,7 +382,7 @@ function makeSwatch(color, active, onClick) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = `swatch${active ? " is-active" : ""}${color.hex === "transparent" ? " is-transparent" : ""}`;
-  if (color.hex !== "transparent") button.style.backgroundColor = color.hex;
+  button.textContent = color.name;
   button.title = `${color.name} ${color.hex}`;
   button.setAttribute("aria-label", color.name);
   button.addEventListener("click", onClick);
@@ -329,32 +393,32 @@ function syncControls() {
   frameOptions.replaceChildren(
     ...framePresets.map((preset) =>
       makeButton(preset.label, state.frame.label === preset.label, () => {
-        state.frame = preset;
-        syncControls();
-        renderComposition(canvas, true);
+        applyChange(() => {
+          state.frame = preset;
+        });
       }),
     ),
   );
 
   paperModeOptions.replaceChildren(
     makeButton("fill", state.paper.mode === "fill", () => {
-      state.paper.mode = "fill";
-      syncControls();
-      renderComposition(canvas, true);
+      applyChange(() => {
+        state.paper.mode = "fill";
+      });
     }),
     makeButton("custom", state.paper.mode === "custom", () => {
-      state.paper.mode = "custom";
-      syncControls();
-      renderComposition(canvas, true);
+      applyChange(() => {
+        state.paper.mode = "custom";
+      });
     }),
   );
 
   backgroundOptions.replaceChildren(
     ...backgroundPalette.map((color) =>
       makeSwatch(color, state.background.name === color.name, () => {
-        state.background = color;
-        syncControls();
-        renderComposition(canvas, true);
+        applyChange(() => {
+          state.background = color;
+        });
       }),
     ),
   );
@@ -362,9 +426,9 @@ function syncControls() {
   frontOptions.replaceChildren(
     ...palette.map((color) =>
       makeSwatch(color, state.front.name === color.name, () => {
-        state.front = color;
-        syncControls();
-        renderComposition(canvas, true);
+        applyChange(() => {
+          state.front = color;
+        });
       }),
     ),
   );
@@ -372,9 +436,9 @@ function syncControls() {
   backOptions.replaceChildren(
     ...palette.map((color) =>
       makeSwatch(color, state.back.name === color.name, () => {
-        state.back = color;
-        syncControls();
-        renderComposition(canvas, true);
+        applyChange(() => {
+          state.back = color;
+        });
       }),
     ),
   );
@@ -382,9 +446,14 @@ function syncControls() {
   foldOptions.replaceChildren(
     ...corners.map((corner) =>
       makeButton(corner, state.folds[corner].enabled, () => {
-        state.folds[corner].enabled = !state.folds[corner].enabled;
-        syncControls();
-        renderComposition(canvas, true);
+        applyChange(() => {
+          const fold = state.folds[corner];
+          fold.enabled = !fold.enabled;
+          if (fold.enabled && (fold.x < 0.018 || fold.y < 0.018)) {
+            fold.x = 0.24;
+            fold.y = 0.24;
+          }
+        });
       }),
     ),
   );
@@ -395,11 +464,10 @@ function syncControls() {
   paperWidthInput.disabled = state.paper.mode === "fill";
   paperHeightInput.disabled = state.paper.mode === "fill";
   textInput.value = state.text;
-  textSizeInput.value = String(state.textSize);
-  textSizeLabel.textContent = `${state.textSize}px`;
   rotateInput.value = String(state.rotation);
   rotationLabel.textContent = `${state.rotation}°`;
-  removeImageButton.hidden = !imageSrc;
+  syncFoldStatus();
+  syncUndoState();
 }
 
 function getLocalPointer(event) {
@@ -422,25 +490,16 @@ function getLocalPointer(event) {
 }
 
 function findHandle(local) {
-  const threshold = Math.max(local.paperWidth, local.paperHeight) * 0.035;
+  const threshold = Math.max(local.paperWidth, local.paperHeight) * 0.055;
   let match = null;
   let bestDistance = Infinity;
 
   for (const corner of corners) {
-    const fold = state.folds[corner];
-    if (!fold.enabled) continue;
-    const points = getFoldPoints(corner, fold, local.paperWidth, local.paperHeight);
-    const candidates = [
-      { point: points.xPoint, axis: "x" },
-      { point: points.yPoint, axis: "y" },
-    ];
-
-    for (const candidate of candidates) {
-      const distance = Math.hypot(local.x - candidate.point.x, local.y - candidate.point.y);
-      if (distance < threshold && distance < bestDistance) {
-        bestDistance = distance;
-        match = { corner, axis: candidate.axis };
-      }
+    const points = getFoldPoints(corner, state.folds[corner], local.paperWidth, local.paperHeight);
+    const distance = Math.hypot(local.x - points.tip.x, local.y - points.tip.y);
+    if (distance < threshold && distance < bestDistance) {
+      bestDistance = distance;
+      match = { corner };
     }
   }
 
@@ -448,22 +507,28 @@ function findHandle(local) {
 }
 
 function moveHandle(handle, local) {
-  const minimum = 0.03;
-  const maximum = 0.78;
+  if (!dragHandle.saved) {
+    pushHistory();
+    dragHandle.saved = true;
+  }
+  const minimum = 0.018;
+  const maximum = 0.82;
   const fold = state.folds[handle.corner];
+  const inward = getInwardFromLocal(handle.corner, local);
+  const x = clamp(inward.x, 0, maximum);
+  const y = clamp(inward.y, 0, maximum);
 
-  if (handle.axis === "x") {
-    if (handle.corner === "tl" || handle.corner === "bl") {
-      fold.x = clamp(local.x / local.paperWidth, minimum, maximum);
-    } else {
-      fold.x = clamp((local.paperWidth - local.x) / local.paperWidth, minimum, maximum);
-    }
-  } else if (handle.corner === "tl" || handle.corner === "tr") {
-    fold.y = clamp(local.y / local.paperHeight, minimum, maximum);
+  if (x < minimum || y < minimum) {
+    fold.enabled = false;
+    fold.x = 0;
+    fold.y = 0;
   } else {
-    fold.y = clamp((local.paperHeight - local.y) / local.paperHeight, minimum, maximum);
+    fold.enabled = true;
+    fold.x = x;
+    fold.y = y;
   }
 
+  syncControls();
   renderComposition(canvas, true);
 }
 
@@ -490,35 +555,33 @@ function exportPng() {
 }
 
 function reset() {
-  state = cloneState(defaultState);
-  loadedImage = null;
-  imageSrc = null;
-  syncControls();
-  renderComposition(canvas, true);
+  applyChange(() => {
+    state = cloneState(defaultState);
+    loadedImage = null;
+    imageSrc = null;
+  });
 }
 
 paperWidthInput.addEventListener("input", () => {
+  pushHistory();
   state.paper.width = Number(paperWidthInput.value) || 80;
   renderComposition(canvas, true);
 });
 
 paperHeightInput.addEventListener("input", () => {
+  pushHistory();
   state.paper.height = Number(paperHeightInput.value) || 80;
   renderComposition(canvas, true);
 });
 
 textInput.addEventListener("input", () => {
+  pushHistory();
   state.text = textInput.value;
   renderComposition(canvas, true);
 });
 
-textSizeInput.addEventListener("input", () => {
-  state.textSize = Number(textSizeInput.value);
-  textSizeLabel.textContent = `${state.textSize}px`;
-  renderComposition(canvas, true);
-});
-
 rotateInput.addEventListener("input", () => {
+  pushHistory();
   state.rotation = Number(rotateInput.value);
   rotationLabel.textContent = `${state.rotation}°`;
   renderComposition(canvas, true);
@@ -527,6 +590,7 @@ rotateInput.addEventListener("input", () => {
 imageInput.addEventListener("change", async () => {
   const file = imageInput.files?.[0];
   if (!file) return;
+  pushHistory();
   imageSrc = await readFileAsDataUrl(file);
   loadedImage = await loadImage(imageSrc);
   imageInput.value = "";
@@ -537,9 +601,12 @@ imageInput.addEventListener("change", async () => {
 document.querySelector("[data-action='load-image']").addEventListener("click", () => imageInput.click());
 document.querySelectorAll("[data-action='reset']").forEach((button) => button.addEventListener("click", reset));
 document.querySelector("[data-action='export']").addEventListener("click", exportPng);
-removeImageButton.addEventListener("click", () => {
-  imageSrc = null;
-  loadedImage = null;
+undoButton.addEventListener("click", () => {
+  const snapshot = history.pop();
+  if (!snapshot) return;
+  state = cloneState(snapshot.state);
+  imageSrc = snapshot.imageSrc;
+  loadedImage = snapshot.loadedImage;
   syncControls();
   renderComposition(canvas, true);
 });
@@ -547,9 +614,12 @@ removeImageButton.addEventListener("click", () => {
 canvas.addEventListener("pointerdown", (event) => {
   const handle = findHandle(getLocalPointer(event));
   if (!handle) return;
-  dragHandle = handle;
+  event.preventDefault();
+  dragHandle = { ...handle, saved: false };
   canvas.setPointerCapture(event.pointerId);
   canvas.classList.add("is-dragging");
+  syncFoldStatus();
+  renderComposition(canvas, true);
 });
 
 canvas.addEventListener("pointermove", (event) => {
@@ -560,6 +630,8 @@ canvas.addEventListener("pointermove", (event) => {
 function endDrag() {
   dragHandle = null;
   canvas.classList.remove("is-dragging");
+  syncFoldStatus();
+  renderComposition(canvas, true);
 }
 
 canvas.addEventListener("pointerup", endDrag);
@@ -582,6 +654,8 @@ document.addEventListener("pointerdown", (event) => {
   if (!event.target.closest(".menu-panel")) closeOpenMenus();
 });
 
-document.fonts?.load('80px "GT Ultra Median"').finally(() => renderComposition(canvas, true));
 syncControls();
 renderComposition(canvas, true);
+if (document.fonts?.load) {
+  document.fonts.load('80px "GT Ultra Median"').finally(() => renderComposition(canvas, true));
+}

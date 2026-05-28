@@ -10,17 +10,29 @@
     <main class="app-shell">
       <header class="topbar" aria-label="Editor controls">
         <input id="image-input" class="file-input" type="file" accept="image/*" />
-        <button type="button" class="nav-command" data-action="load-image">Image</button>
-        <button type="button" class="nav-command subtle-command" data-action="remove-image" hidden>Remove image</button>
+        <button type="button" class="nav-command" data-action="load-image">Load image</button>
 
-        <details class="menu-panel">
+        <details class="menu-panel primary-panel">
+          <summary>Back</summary>
+          <div class="menu-content">
+            <div class="swatch-grid" data-back-options></div>
+          </div>
+        </details>
+
+        <button type="button" class="nav-command" data-action="reset">Reset</button>
+        <button type="button" class="nav-command" data-action="undo">Undo</button>
+        <button type="button" class="nav-command" data-action="export">Export</button>
+
+        <span class="toolbar-spacer"></span>
+
+        <details class="menu-panel secondary-panel">
           <summary>Frame</summary>
           <div class="menu-content compact-content">
             <div class="button-grid" data-frame-options></div>
           </div>
         </details>
 
-        <details class="menu-panel">
+        <details class="menu-panel secondary-panel">
           <summary>Paper size</summary>
           <div class="menu-content">
             <div class="segmented" data-paper-mode-options></div>
@@ -37,46 +49,35 @@
           </div>
         </details>
 
-        <details class="menu-panel">
+        <details class="menu-panel secondary-panel">
           <summary>Background</summary>
           <div class="menu-content">
             <div class="swatch-grid" data-background-options></div>
           </div>
         </details>
 
-        <details class="menu-panel">
+        <details class="menu-panel secondary-panel">
           <summary>Color</summary>
           <div class="menu-content">
             <div class="swatch-grid" data-front-options></div>
           </div>
         </details>
 
-        <details class="menu-panel">
-          <summary>Back</summary>
-          <div class="menu-content">
-            <div class="swatch-grid" data-back-options></div>
-          </div>
-        </details>
-
-        <details class="menu-panel">
+        <details class="menu-panel secondary-panel">
           <summary>Folds</summary>
           <div class="menu-content compact-content">
             <div class="corner-grid" data-fold-options></div>
           </div>
         </details>
 
-        <details class="menu-panel text-menu">
+        <details class="menu-panel secondary-panel text-menu">
           <summary>Text</summary>
           <div class="menu-content">
             <textarea id="text-input" spellcheck="false"></textarea>
-            <label class="slider-label">
-              <span data-text-size-label>text size</span>
-              <input id="text-size" type="range" min="24" max="260" />
-            </label>
           </div>
         </details>
 
-        <details class="menu-panel">
+        <details class="menu-panel secondary-panel">
           <summary>Rotate</summary>
           <div class="menu-content">
             <label class="slider-label">
@@ -86,9 +87,6 @@
           </div>
         </details>
 
-        <span class="toolbar-spacer"></span>
-        <button type="button" class="nav-command" data-action="reset">Reset</button>
-        <button type="button" class="nav-command strong-command" data-action="export">Export</button>
       </header>
 
       <section class="canvas-stage" aria-label="Composition preview">
@@ -96,8 +94,9 @@
       </section>
 
       <footer class="statusbar">
-        <span>Fortune cookie paper tool</span>
-        <span>drag fold handles to shape corners</span>
+        <span>© Fortune Paper Tool™ 2026 v0.1</span>
+        <span data-fold-count>0 folds</span>
+        <span>PNG export ready</span>
       </footer>
     </main>
 
