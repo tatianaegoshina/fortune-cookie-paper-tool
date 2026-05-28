@@ -1,7 +1,6 @@
 const framePresets = [
-  { label: "2000x500", width: 2000, height: 500, textSize: 120 },
+  { label: "1200x630", width: 1200, height: 630, textSize: 60 },
   { label: "1280x1710", width: 1280, height: 1710, textSize: 140 },
-  { label: "1200x630", width: 1200, height: 630, textSize: 100 },
   { label: "1080x1920", width: 1080, height: 1920, textSize: 120 },
   { label: "2000x2000", width: 2000, height: 2000, textSize: 200 },
 ];
@@ -46,7 +45,7 @@ function getRandomFortune() {
 
 const defaultState = {
   frame: framePresets[0],
-  paper: { mode: "fill", width: 1480, height: 1480 },
+  paper: { mode: "custom", width: 1100, height: 250 },
   background: palette[6],
   front: palette[7],
   back: palette[8],
@@ -77,6 +76,7 @@ const frontOptions = document.querySelector("[data-front-options]");
 const backOptions = document.querySelector("[data-back-options]");
 const paperWidthInput = document.querySelector("#paper-width");
 const paperHeightInput = document.querySelector("#paper-height");
+const textSizeInput = document.querySelector("#text-size");
 const imageInput = document.querySelector("#image-input");
 const textInput = document.querySelector("#text-input");
 const undoButton = document.querySelector("[data-action='undo']");
@@ -582,8 +582,8 @@ function isPaperHit(local) {
   return isPointInPolygon({ x: local.x, y: local.y }, getVisiblePaperPolygon(local.paperWidth, local.paperHeight));
 }
 
-function openTextEditor(selectText = true) {
-  closeOpenMenus();
+function openTextEditor(selectText = true, closeMenus = true) {
+  if (closeMenus) closeOpenMenus();
   const { width: paperWidth, height: paperHeight } = getPaperSize();
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
@@ -767,6 +767,7 @@ function syncControls() {
   paperWidthInput.value = String(Math.round(state.paper.mode === "fill" ? paperSize.width : state.paper.width));
   paperHeightInput.value = String(Math.round(state.paper.mode === "fill" ? paperSize.height : state.paper.height));
   paperCustomFields.hidden = state.paper.mode !== "custom";
+  textSizeInput.value = String(Math.round(state.textSize));
   textInput.value = state.text;
   syncFoldStatus();
   syncUndoState();
@@ -871,6 +872,13 @@ paperWidthInput.addEventListener("input", () => {
 paperHeightInput.addEventListener("input", () => {
   pushHistory();
   state.paper.height = Number(paperHeightInput.value) || 80;
+  renderComposition(canvas, true);
+});
+
+textSizeInput.addEventListener("input", () => {
+  pushHistory();
+  state.textSize = clamp(Number(textSizeInput.value) || 1, 1, 999);
+  if (textInput.classList.contains("is-editing")) openTextEditor(false, false);
   renderComposition(canvas, true);
 });
 
