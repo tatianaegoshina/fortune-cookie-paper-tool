@@ -43,9 +43,9 @@ function getRandomFortune() {
 const defaultState = {
   frame: framePresets[0],
   paper: { mode: "fill", width: 1480, height: 1480 },
-  background: palette[4],
-  front: palette[10],
-  back: palette[0],
+  background: palette[6],
+  front: palette[7],
+  back: palette[8],
   text: getRandomFortune(),
   textSize: framePresets[0].textSize,
   folds: {
@@ -61,6 +61,7 @@ let loadedImage = null;
 let imageSrc = null;
 let dragHandle = null;
 let history = [];
+let textEditSaved = false;
 
 const canvas = document.querySelector("#preview-canvas");
 const frameOptions = document.querySelector("[data-frame-options]");
@@ -264,6 +265,73 @@ function wrapText(ctx, text, maxWidth) {
   });
 }
 
+function getPaperTextLayout(ctx, paperWidth, paperHeight) {
+  const fontSize = clamp(state.textSize, 12, Math.min(paperWidth, paperHeight) * 0.42);
+  ctx.font = `${fontSize}px "GT Ultra Median", Georgia, serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  if ("letterSpacing" in ctx) ctx.letterSpacing = `${fontSize * -0.006}px`;
+
+  const lines = wrapText(ctx, state.text, paperWidth * 0.78);
+  const lineHeight = fontSize * 0.98;
+  const startY = paperHeight / 2 - ((lines.length - 1) * lineHeight) / 2;
+
+  return { fontSize, lines, lineHeight, startY, maxWidth: paperWidth * 0.78 };
+}
+
+function isTextHit(local) {
+  if (!state.text.trim()) return false;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return false;
+  const layout = getPaperTextLayout(ctx, local.paperWidth, local.paperHeight);
+  const maxLineWidth = Math.max(...layout.lines.map((line) => ctx.measureText(line).width), 0);
+  const left = local.paperWidth / 2 - maxLineWidth / 2;
+  const right = local.paperWidth / 2 + maxLineWidth / 2;
+  const top = layout.startY - layout.fontSize / 2;
+  const bottom = layout.startY + (layout.lines.length - 1) * layout.lineHeight + layout.fontSize / 2;
+
+  return local.x >= left && local.x <= right && local.y >= top && local.y <= bottom;
+}
+
+function openTextEditor(selectText = true) {
+  closeOpenMenus();
+  const { width: paperWidth, height: paperHeight } = getPaperSize();
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const layout = getPaperTextLayout(ctx, paperWidth, paperHeight);
+  const canvasRect = canvas.getBoundingClientRect();
+  const stageRect = canvas.parentElement.getBoundingClientRect();
+  const scaleX = canvasRect.width / state.frame.width;
+  const scaleY = canvasRect.height / state.frame.height;
+  const editorWidth = layout.maxWidth * scaleX;
+  const editorHeight = Math.max(layout.fontSize * 1.2, (layout.lines.length - 1) * layout.lineHeight + layout.fontSize) * scaleY;
+  const centerX = canvasRect.left - stageRect.left + (state.frame.width / 2) * scaleX;
+  const centerY = canvasRect.top - stageRect.top + (state.frame.height / 2) * scaleY;
+  const textColor = loadedImage || textDarkColors.has(state.front.name) ? "#000000" : "#ffffff";
+
+  if (selectText || !textInput.classList.contains("is-editing")) textInput.value = state.text;
+  textInput.style.left = `${centerX - editorWidth / 2}px`;
+  textInput.style.top = `${centerY - editorHeight / 2}px`;
+  textInput.style.width = `${editorWidth}px`;
+  textInput.style.height = `${editorHeight}px`;
+  textInput.style.fontSize = `${layout.fontSize * scaleY}px`;
+  textInput.style.letterSpacing = `${layout.fontSize * scaleY * -0.006}px`;
+  textInput.style.color = textColor;
+  textInput.classList.add("is-editing");
+  renderComposition(canvas, true);
+  if (selectText) {
+    textInput.focus();
+    textInput.select();
+  }
+}
+
+function closeTextEditor(render = true) {
+  const wasEditing = textInput.classList.contains("is-editing");
+  textInput.classList.remove("is-editing");
+  textEditSaved = false;
+  if (wasEditing && render) renderComposition(canvas, true);
+}
+
 function renderComposition(targetCanvas, showGuides) {
   const { frame } = state;
   const { width: paperWidth, height: paperHeight } = getPaperSize();
@@ -290,19 +358,12 @@ function renderComposition(targetCanvas, showGuides) {
   ctx.fillRect(0, 0, paperWidth, paperHeight);
   if (loadedImage) drawCoverImage(ctx, loadedImage, 0, 0, paperWidth, paperHeight);
 
-  if (state.text.trim()) {
+  const isEditingText = targetCanvas === canvas && textInput.classList.contains("is-editing");
+  if (state.text.trim() && !isEditingText) {
     const textColor = loadedImage || textDarkColors.has(state.front.name) ? "#000000" : "#ffffff";
-    const fontSize = clamp(state.textSize, 12, Math.min(paperWidth, paperHeight) * 0.42);
-    ctx.font = `${fontSize}px "GT Ultra Median", Georgia, serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
     ctx.fillStyle = textColor;
-
-    const lines = wrapText(ctx, state.text, paperWidth * 0.78);
-    if ("letterSpacing" in ctx) ctx.letterSpacing = `${fontSize * -0.006}px`;
-    const lineHeight = fontSize * 0.98;
-    const startY = paperHeight / 2 - ((lines.length - 1) * lineHeight) / 2;
-    lines.forEach((line, index) => ctx.fillText(line, paperWidth / 2, startY + index * lineHeight));
+    const layout = getPaperTextLayout(ctx, paperWidth, paperHeight);
+    layout.lines.forEach((line, index) => ctx.fillText(line, paperWidth / 2, layout.startY + index * layout.lineHeight));
   }
   ctx.restore();
 
@@ -519,6 +580,7 @@ function moveHandle(handle, local) {
 
 function exportPng() {
   const finish = () => {
+    closeTextEditor(false);
     const exportCanvas = document.createElement("canvas");
     renderComposition(exportCanvas, false);
     exportCanvas.toBlob((blob) => {
@@ -540,6 +602,7 @@ function exportPng() {
 }
 
 function reset() {
+  closeTextEditor(false);
   applyChange(() => {
     state = cloneState(defaultState);
     loadedImage = null;
@@ -560,10 +623,16 @@ paperHeightInput.addEventListener("input", () => {
 });
 
 textInput.addEventListener("input", () => {
-  pushHistory();
+  if (!textEditSaved) {
+    pushHistory();
+    textEditSaved = true;
+  }
   state.text = textInput.value;
-  renderComposition(canvas, true);
+  openTextEditor(false);
 });
+
+textInput.addEventListener("blur", closeTextEditor);
+textInput.addEventListener("pointerdown", (event) => event.stopPropagation());
 
 imageInput.addEventListener("change", async () => {
   const file = imageInput.files?.[0];
@@ -590,9 +659,17 @@ undoButton.addEventListener("click", () => {
 });
 
 canvas.addEventListener("pointerdown", (event) => {
-  const handle = findHandle(getLocalPointer(event));
-  if (!handle) return;
+  const local = getLocalPointer(event);
+  const handle = findHandle(local);
+  if (!handle) {
+    if (isTextHit(local)) {
+      event.preventDefault();
+      openTextEditor();
+    }
+    return;
+  }
   event.preventDefault();
+  closeTextEditor();
   dragHandle = { ...handle, saved: false };
   canvas.setPointerCapture(event.pointerId);
   canvas.classList.add("is-dragging");

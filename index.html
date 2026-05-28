@@ -10,67 +10,65 @@
     <main class="app-shell">
       <header class="topbar" aria-label="Editor controls">
         <input id="image-input" class="file-input" type="file" accept="image/*" />
-        <details class="menu-panel">
-          <summary>Frame</summary>
-          <div class="menu-content compact-content">
-            <div class="button-grid" data-frame-options></div>
-          </div>
-        </details>
-
-        <button type="button" class="nav-command" data-action="load-image">Image</button>
-
-        <details class="menu-panel">
-          <summary>Paper size</summary>
-          <div class="menu-content">
-            <div class="segmented" data-paper-mode-options></div>
-            <div class="number-row">
-              <label>
-                w
-                <input id="paper-width" type="number" min="80" />
-              </label>
-              <label>
-                h
-                <input id="paper-height" type="number" min="80" />
-              </label>
+        <div class="menu-group">
+          <details class="menu-panel">
+            <summary>Frame</summary>
+            <div class="menu-content compact-content">
+              <div class="button-grid" data-frame-options></div>
             </div>
-          </div>
-        </details>
+          </details>
 
-        <details class="menu-panel">
-          <summary>Color</summary>
-          <div class="menu-content">
-            <div class="swatch-grid" data-front-options></div>
-          </div>
-        </details>
+          <button type="button" class="nav-command" data-action="load-image">Image</button>
 
-        <details class="menu-panel">
-          <summary>Folds</summary>
-          <div class="menu-content compact-content">
-            <div class="swatch-grid" data-back-options></div>
-          </div>
-        </details>
+          <details class="menu-panel">
+            <summary>Paper size</summary>
+            <div class="menu-content">
+              <div class="segmented" data-paper-mode-options></div>
+              <div class="number-row">
+                <label>
+                  w
+                  <input id="paper-width" type="number" min="80" />
+                </label>
+                <label>
+                  h
+                  <input id="paper-height" type="number" min="80" />
+                </label>
+              </div>
+            </div>
+          </details>
 
-        <details class="menu-panel">
-          <summary>Background</summary>
-          <div class="menu-content">
-            <div class="swatch-grid" data-background-options></div>
-          </div>
-        </details>
+          <details class="menu-panel">
+            <summary>Color</summary>
+            <div class="menu-content">
+              <div class="swatch-grid" data-front-options></div>
+            </div>
+          </details>
 
-        <details class="menu-panel text-menu">
-          <summary>Text</summary>
-          <div class="menu-content">
-            <textarea id="text-input" spellcheck="false"></textarea>
-          </div>
-        </details>
+          <details class="menu-panel">
+            <summary>Folds</summary>
+            <div class="menu-content compact-content">
+              <div class="swatch-grid" data-back-options></div>
+            </div>
+          </details>
 
-        <button type="button" class="nav-command" data-action="undo">Undo</button>
-        <button type="button" class="nav-command" data-action="reset">Reset</button>
-        <button type="button" class="nav-command" data-action="export">Export</button>
+          <details class="menu-panel">
+            <summary>Background</summary>
+            <div class="menu-content">
+              <div class="swatch-grid" data-background-options></div>
+            </div>
+          </details>
+        </div>
+
+        <div class="menu-group action-group">
+          <button type="button" class="nav-command" data-action="undo">Undo</button>
+          <button type="button" class="nav-command" data-action="reset">Reset</button>
+          <button type="button" class="nav-command" data-action="export">Export</button>
+        </div>
       </header>
 
       <section class="canvas-stage" aria-label="Composition preview">
         <canvas id="preview-canvas"></canvas>
+        <textarea id="text-input" class="canvas-text-editor" spellcheck="false" aria-label="Paper text"></textarea>
       </section>
 
     </main>
