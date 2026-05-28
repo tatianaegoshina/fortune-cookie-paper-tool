@@ -565,6 +565,23 @@ function endDrag() {
 canvas.addEventListener("pointerup", endDrag);
 canvas.addEventListener("pointercancel", endDrag);
 
+
+function closeOpenMenus(except = null) {
+  document.querySelectorAll(".menu-panel[open]").forEach((panel) => {
+    if (panel !== except) panel.removeAttribute("open");
+  });
+}
+
+document.querySelectorAll(".menu-panel").forEach((panel) => {
+  panel.addEventListener("toggle", () => {
+    if (panel.open) closeOpenMenus(panel);
+  });
+});
+
+document.addEventListener("pointerdown", (event) => {
+  if (!event.target.closest(".menu-panel")) closeOpenMenus();
+});
+
 document.fonts?.load('80px "GT Ultra Median"').finally(() => renderComposition(canvas, true));
 syncControls();
 renderComposition(canvas, true);
