@@ -298,7 +298,8 @@ function renderComposition(targetCanvas, showGuides) {
     ctx.fillStyle = textColor;
 
     const lines = wrapText(ctx, state.text, paperWidth * 0.78);
-    const lineHeight = fontSize * 1.02;
+    if ("letterSpacing" in ctx) ctx.letterSpacing = `${fontSize * -0.006}px`;
+    const lineHeight = fontSize * 0.98;
     const startY = paperHeight / 2 - ((lines.length - 1) * lineHeight) / 2;
     lines.forEach((line, index) => ctx.fillText(line, paperWidth / 2, startY + index * lineHeight));
   }
