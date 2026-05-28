@@ -66,6 +66,7 @@ let textEditSaved = false;
 const canvas = document.querySelector("#preview-canvas");
 const frameOptions = document.querySelector("[data-frame-options]");
 const paperModeOptions = document.querySelector("[data-paper-mode-options]");
+const paperCustomFields = document.querySelector("[data-paper-custom-fields]");
 const backgroundOptions = document.querySelector("[data-background-options]");
 const frontOptions = document.querySelector("[data-front-options]");
 const backOptions = document.querySelector("[data-back-options]");
@@ -475,6 +476,8 @@ function syncControls() {
     makeButton("custom", state.paper.mode === "custom", () => {
       applyChange(() => {
         state.paper.mode = "custom";
+        state.paper.width = state.frame.width;
+        state.paper.height = state.frame.height;
       });
     }),
   );
@@ -512,8 +515,7 @@ function syncControls() {
   const paperSize = getPaperSize();
   paperWidthInput.value = String(Math.round(state.paper.mode === "fill" ? paperSize.width : state.paper.width));
   paperHeightInput.value = String(Math.round(state.paper.mode === "fill" ? paperSize.height : state.paper.height));
-  paperWidthInput.disabled = state.paper.mode === "fill";
-  paperHeightInput.disabled = state.paper.mode === "fill";
+  paperCustomFields.hidden = state.paper.mode !== "custom";
   textInput.value = state.text;
   syncFoldStatus();
   syncUndoState();
