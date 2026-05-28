@@ -1,8 +1,9 @@
 const framePresets = [
-  { label: "1280x1710", width: 1280, height: 1710 },
-  { label: "1200x630", width: 1200, height: 630 },
-  { label: "1080x1920", width: 1080, height: 1920 },
-  { label: "2000x2000", width: 2000, height: 2000 },
+  { label: "2000x500", width: 2000, height: 500, textSize: 120 },
+  { label: "1280x1710", width: 1280, height: 1710, textSize: 140 },
+  { label: "1200x630", width: 1200, height: 630, textSize: 100 },
+  { label: "1080x1920", width: 1080, height: 1920, textSize: 120 },
+  { label: "2000x2000", width: 2000, height: 2000, textSize: 200 },
 ];
 
 const palette = [
@@ -40,13 +41,13 @@ function getRandomFortune() {
 }
 
 const defaultState = {
-  frame: framePresets[3],
+  frame: framePresets[0],
   paper: { mode: "fill", width: 1480, height: 1480 },
   background: palette[4],
   front: palette[10],
   back: palette[0],
   text: getRandomFortune(),
-  textSize: 260,
+  textSize: framePresets[0].textSize,
   folds: {
     tl: { enabled: false, x: 0.24, y: 0.24 },
     tr: { enabled: false, x: 0.24, y: 0.24 },
@@ -398,6 +399,7 @@ function syncControls() {
       makeButton(preset.label, state.frame.label === preset.label, () => {
         applyChange(() => {
           state.frame = preset;
+          state.textSize = preset.textSize;
         });
       }),
     ),
