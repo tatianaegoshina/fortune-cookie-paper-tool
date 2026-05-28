@@ -22,6 +22,22 @@ const palette = [
 const backgroundPalette = [...palette, { name: "transparent", hex: "transparent" }];
 const corners = ["tl", "tr", "br", "bl"];
 const textDarkColors = new Set(["white", "light grey", "pink", "orange", "green"]);
+const fortunes = [
+  "The luck is already looking for you.",
+  "Don't confuse rest with failure.",
+  "Buy the shoes. The story needs them.",
+  "Someone remembers you more often than you think.",
+  "Your life changes quietly before it changes loudly.",
+  "Don't be afraid of being slow. Be afraid of standing still.",
+  "A random conversation will open the right door.",
+  "Your taste will take you further than strategy.",
+  "You are closer than your anxiety admits.",
+  "Beauty is not a distraction from your path. It is the path.",
+];
+
+function getRandomFortune() {
+  return fortunes[Math.floor(Math.random() * fortunes.length)];
+}
 
 const defaultState = {
   frame: framePresets[3],
@@ -29,7 +45,7 @@ const defaultState = {
   background: palette[4],
   front: palette[10],
   back: palette[0],
-  text: "PEEL",
+  text: getRandomFortune(),
   textSize: 260,
   folds: {
     tl: { enabled: false, x: 0.24, y: 0.24 },
@@ -56,7 +72,6 @@ const paperHeightInput = document.querySelector("#paper-height");
 const imageInput = document.querySelector("#image-input");
 const textInput = document.querySelector("#text-input");
 const undoButton = document.querySelector("[data-action='undo']");
-const foldCount = document.querySelector("[data-fold-count]");
 
 function cloneState(source) {
   return {
@@ -93,14 +108,6 @@ function syncUndoState() {
 }
 
 function syncFoldStatus() {
-  const count = corners.filter((corner) => state.folds[corner].enabled).length;
-  if (dragHandle) {
-    foldCount.textContent = "Shaping fold";
-  } else if (count === 1) {
-    foldCount.textContent = "1 fold in";
-  } else {
-    foldCount.textContent = `${count} folds`;
-  }
 }
 
 function applyChange(mutator, options = {}) {

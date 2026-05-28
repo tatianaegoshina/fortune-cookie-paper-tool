@@ -45,7 +45,7 @@ button {
 .app-shell {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 100vh;
   overflow: hidden;
   background: #ffffff;
@@ -92,8 +92,7 @@ button {
 .nav-command:hover,
 .menu-panel > summary:hover,
 .select-button:hover,
-.swatch:hover,
-.statusbar span:hover {
+.swatch:hover {
   color: #000000;
 }
 
@@ -242,29 +241,6 @@ canvas.is-dragging {
   cursor: grabbing;
 }
 
-.statusbar {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: end;
-  gap: 18px;
-  min-height: 76px;
-  padding: 0 clamp(26px, 5vw, 86px) 28px;
-  color: #5f5f5f;
-  font-size: clamp(12px, 0.9vw, 18px);
-  font-weight: 400;
-  line-height: 1.2;
-}
-
-.statusbar span:nth-child(2) {
-  font-size: clamp(26px, 2vw, 46px);
-}
-
-.statusbar span:last-child {
-  justify-self: end;
-}
-
 @media (max-width: 1120px) {
   .topbar {
     min-height: 78px;
@@ -306,19 +282,4 @@ canvas.is-dragging {
     max-height: calc(100vh - 168px);
   }
 
-  .statusbar {
-    min-height: 54px;
-    padding: 0 18px 18px;
-    grid-template-columns: 1fr;
-  }
-
-  .statusbar span:first-child,
-  .statusbar span:last-child {
-    display: none;
-  }
-
-  .statusbar span:nth-child(2) {
-    justify-self: center;
-    font-size: 28px;
-  }
 }
