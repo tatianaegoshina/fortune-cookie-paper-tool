@@ -24,11 +24,11 @@ const corners = ["tl", "tr", "br", "bl"];
 const textDarkColors = new Set(["white", "light grey", "pink", "orange", "green"]);
 const fortunes = [
   "The luck is already looking for you.",
-  "Don't confuse rest with failure.",
+  "Don’t confuse rest with failure.",
   "Buy the shoes. The story needs them.",
   "Someone remembers you more often than you think.",
   "Your life changes quietly before it changes loudly.",
-  "Don't be afraid of being slow. Be afraid of standing still.",
+  "Don’t be afraid of being slow. Be afraid of standing still.",
   "A random conversation will open the right door.",
   "Your taste will take you further than strategy.",
   "You are closer than your anxiety admits.",
