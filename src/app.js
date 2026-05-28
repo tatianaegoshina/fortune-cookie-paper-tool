@@ -60,6 +60,7 @@ let state = cloneState(defaultState);
 let loadedImage = null;
 let imageSrc = null;
 let dragHandle = null;
+let hoverHandle = null;
 let history = [];
 let textEditSaved = false;
 
@@ -75,6 +76,18 @@ const paperHeightInput = document.querySelector("#paper-height");
 const imageInput = document.querySelector("#image-input");
 const textInput = document.querySelector("#text-input");
 const undoButton = document.querySelector("[data-action='undo']");
+const foldHandleLayer = document.querySelector(".fold-handle-layer");
+const foldHandleButtons = Object.fromEntries(
+  corners.map((corner) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "fold-handle";
+    button.dataset.corner = corner;
+    button.setAttribute("aria-label", `${corner} fold handle`);
+    foldHandleLayer.append(button);
+    return [corner, button];
+  }),
+);
 
 function cloneState(source) {
   return {
@@ -186,6 +199,35 @@ function getInwardFromLocal(corner, local) {
   }
 
   return { x: local.x / local.paperWidth, y: (local.paperHeight - local.y) / local.paperHeight };
+}
+
+function getPaperPointViewport(point, paperWidth, paperHeight) {
+  const rect = canvas.getBoundingClientRect();
+  const stageRect = canvas.parentElement.getBoundingClientRect();
+  const scaleX = rect.width / state.frame.width;
+  const scaleY = rect.height / state.frame.height;
+  const paperLeft = rect.left - stageRect.left + ((state.frame.width - paperWidth) / 2) * scaleX;
+  const paperTop = rect.top - stageRect.top + ((state.frame.height - paperHeight) / 2) * scaleY;
+
+  return {
+    x: paperLeft + point.x * scaleX,
+    y: paperTop + point.y * scaleY,
+  };
+}
+
+function syncFoldHandles() {
+  const { width: paperWidth, height: paperHeight } = getPaperSize();
+
+  for (const corner of corners) {
+    const button = foldHandleButtons[corner];
+    const points = getFoldPoints(corner, state.folds[corner], paperWidth, paperHeight);
+    const position = getPaperPointViewport(points.tip, paperWidth, paperHeight);
+    const isVisible = dragHandle?.corner === corner || hoverHandle?.corner === corner;
+
+    button.style.left = `${position.x}px`;
+    button.style.top = `${position.y}px`;
+    button.classList.toggle("is-visible", isVisible);
+  }
 }
 
 function addFrontPath(ctx, width, height) {
@@ -381,40 +423,8 @@ function renderComposition(targetCanvas, showGuides) {
     ctx.fill();
   }
 
-  if (showGuides) drawGuides(ctx, paperWidth, paperHeight);
+  if (showGuides && targetCanvas === canvas) syncFoldHandles();
   ctx.restore();
-}
-
-function drawGuides(ctx, paperWidth, paperHeight) {
-  const radius = Math.max(12, Math.min(paperWidth, paperHeight) * 0.018);
-
-  if (dragHandle) {
-    ctx.lineWidth = Math.max(1, Math.min(paperWidth, paperHeight) * 0.003);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-    ctx.setLineDash([Math.max(6, paperWidth * 0.012), Math.max(6, paperWidth * 0.012)]);
-
-    const fold = state.folds[dragHandle.corner];
-    if (fold.enabled) {
-      const points = getFoldPoints(dragHandle.corner, fold, paperWidth, paperHeight);
-      ctx.beginPath();
-      ctx.moveTo(points.xPoint.x, points.xPoint.y);
-      ctx.lineTo(points.yPoint.x, points.yPoint.y);
-      ctx.stroke();
-    }
-
-    ctx.setLineDash([]);
-  }
-
-  for (const corner of corners) {
-    const points = getFoldPoints(corner, state.folds[corner], paperWidth, paperHeight);
-    ctx.beginPath();
-    ctx.arc(points.tip.x, points.tip.y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = "#d8d0d0";
-    ctx.fill();
-    ctx.lineWidth = Math.max(2, radius * 0.12);
-    ctx.strokeStyle = "#000000";
-    ctx.stroke();
-  }
 }
 
 function readFileAsDataUrl(file) {
@@ -578,6 +588,7 @@ function moveHandle(handle, local) {
 
   syncControls();
   renderComposition(canvas, true);
+  syncFoldHandles();
 }
 
 function exportPng() {
@@ -672,27 +683,42 @@ canvas.addEventListener("pointerdown", (event) => {
   }
   event.preventDefault();
   closeTextEditor();
+  hoverHandle = handle;
   dragHandle = { ...handle, saved: false };
   canvas.setPointerCapture(event.pointerId);
   canvas.classList.add("is-dragging");
   syncFoldStatus();
   renderComposition(canvas, true);
+  syncFoldHandles();
 });
 
 canvas.addEventListener("pointermove", (event) => {
-  if (!dragHandle) return;
-  moveHandle(dragHandle, getLocalPointer(event));
+  const local = getLocalPointer(event);
+  if (dragHandle) {
+    moveHandle(dragHandle, local);
+    return;
+  }
+
+  hoverHandle = findHandle(local);
+  syncFoldHandles();
 });
 
 function endDrag() {
   dragHandle = null;
+  hoverHandle = null;
   canvas.classList.remove("is-dragging");
   syncFoldStatus();
   renderComposition(canvas, true);
+  syncFoldHandles();
 }
 
 canvas.addEventListener("pointerup", endDrag);
 canvas.addEventListener("pointercancel", endDrag);
+canvas.addEventListener("pointerleave", () => {
+  if (dragHandle) return;
+  hoverHandle = null;
+  syncFoldHandles();
+});
 
 
 function closeOpenMenus(except = null) {
@@ -711,8 +737,13 @@ document.addEventListener("pointerdown", (event) => {
   if (!event.target.closest(".menu-panel")) closeOpenMenus();
 });
 
+window.addEventListener("resize", syncFoldHandles);
+
 syncControls();
 renderComposition(canvas, true);
 if (document.fonts?.load) {
-  document.fonts.load('80px "GT Ultra Median"').finally(() => renderComposition(canvas, true));
+  document.fonts.load('80px "GT Ultra Median"').finally(() => {
+    renderComposition(canvas, true);
+    syncFoldHandles();
+  });
 }

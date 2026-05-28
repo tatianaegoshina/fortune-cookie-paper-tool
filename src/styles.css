@@ -244,6 +244,32 @@ input[type="range"]:hover {
   background: #ffffff;
 }
 
+.fold-handle-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.fold-handle {
+  position: absolute;
+  width: clamp(18px, 1.8vw, 32px);
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #d8d0d0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.32);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: opacity 120ms ease;
+}
+
+.fold-handle.is-visible {
+  opacity: 1;
+}
+
 .canvas-text-editor {
   position: absolute;
   z-index: 4;
