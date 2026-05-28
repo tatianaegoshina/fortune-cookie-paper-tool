@@ -124,7 +124,10 @@ function pushHistory() {
 }
 
 function syncUndoState() {
-  if (undoButton) undoButton.disabled = history.length === 0;
+  if (!undoButton) return;
+  const canUndo = history.length > 0;
+  undoButton.disabled = !canUndo;
+  undoButton.hidden = !canUndo;
 }
 
 function syncFoldStatus() {
