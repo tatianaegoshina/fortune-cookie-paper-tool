@@ -22,6 +22,10 @@ const palette = [
 
 const backgroundPalette = [...palette, { name: "transparent", hex: "transparent" }];
 const corners = ["tl", "tr", "br", "bl"];
+const minFoldRatio = 0.018;
+const maxFoldReachShare = 2.2;
+const maxFoldAspect = 7;
+const foldEdgeGapRatio = 0.012;
 const textDarkColors = new Set(["white", "light grey", "pink", "orange", "green"]);
 const fortunes = [
   "The luck is already looking for you.",
@@ -144,17 +148,57 @@ function getPaperSize() {
   };
 }
 
-function getFoldPoints(corner, fold, width, height) {
-  const inwardX = clamp(fold.x * width, 0, width * 0.82);
-  const inwardY = clamp(fold.y * height, 0, height * 0.82);
+function getFoldOffsets(inwardX, inwardY) {
   const distance = (inwardX * inwardX + inwardY * inwardY) / 2;
-  const offsetX = inwardX > 0 ? clamp(distance / inwardX, 12, width) : 12;
-  const offsetY = inwardY > 0 ? clamp(distance / inwardY, 12, height) : 12;
+
+  return {
+    x: inwardX > 0 ? distance / inwardX : 0,
+    y: inwardY > 0 ? distance / inwardY : 0,
+  };
+}
+
+function normalizeFoldRatios(xRatio, yRatio, width, height) {
+  let inwardX = clamp(xRatio, 0, maxFoldReachShare) * width;
+  let inwardY = clamp(yRatio, 0, maxFoldReachShare) * height;
+  const minX = width * minFoldRatio;
+  const minY = height * minFoldRatio;
+
+  if (inwardX < minX || inwardY < minY) {
+    return { enabled: false, x: 0, y: 0, inwardX: 0, inwardY: 0, offsetX: 0, offsetY: 0 };
+  }
+
+  for (let index = 0; index < 8; index += 1) {
+    const aspect = inwardX / inwardY;
+    if (aspect > maxFoldAspect) inwardX = inwardY * maxFoldAspect;
+    if (aspect < 1 / maxFoldAspect) inwardY = inwardX * maxFoldAspect;
+    break;
+  }
+
+  const offsets = getFoldOffsets(inwardX, inwardY);
+
+  return {
+    enabled: true,
+    x: inwardX / width,
+    y: inwardY / height,
+    inwardX,
+    inwardY,
+    offsetX: clamp(offsets.x, 12, width * maxFoldReachShare),
+    offsetY: clamp(offsets.y, 12, height * maxFoldReachShare),
+  };
+}
+
+function getFoldPoints(corner, fold, width, height) {
+  const normalized = fold.enabled ? normalizeFoldRatios(fold.x, fold.y, width, height) : null;
+  const isEnabled = Boolean(normalized?.enabled);
+  const inwardX = normalized?.inwardX ?? 0;
+  const inwardY = normalized?.inwardY ?? 0;
+  const offsetX = normalized?.offsetX ?? 12;
+  const offsetY = normalized?.offsetY ?? 12;
 
   if (corner === "tl") {
     return {
       corner: { x: 0, y: 0 },
-      tip: fold.enabled ? { x: inwardX, y: inwardY } : { x: 0, y: 0 },
+      tip: isEnabled ? { x: inwardX, y: inwardY } : { x: 0, y: 0 },
       xPoint: { x: offsetX, y: 0 },
       yPoint: { x: 0, y: offsetY },
     };
@@ -162,7 +206,7 @@ function getFoldPoints(corner, fold, width, height) {
   if (corner === "tr") {
     return {
       corner: { x: width, y: 0 },
-      tip: fold.enabled ? { x: width - inwardX, y: inwardY } : { x: width, y: 0 },
+      tip: isEnabled ? { x: width - inwardX, y: inwardY } : { x: width, y: 0 },
       xPoint: { x: width - offsetX, y: 0 },
       yPoint: { x: width, y: offsetY },
     };
@@ -170,7 +214,7 @@ function getFoldPoints(corner, fold, width, height) {
   if (corner === "br") {
     return {
       corner: { x: width, y: height },
-      tip: fold.enabled ? { x: width - inwardX, y: height - inwardY } : { x: width, y: height },
+      tip: isEnabled ? { x: width - inwardX, y: height - inwardY } : { x: width, y: height },
       xPoint: { x: width - offsetX, y: height },
       yPoint: { x: width, y: height - offsetY },
     };
@@ -178,10 +222,227 @@ function getFoldPoints(corner, fold, width, height) {
 
   return {
     corner: { x: 0, y: height },
-    tip: fold.enabled ? { x: inwardX, y: height - inwardY } : { x: 0, y: height },
+    tip: isEnabled ? { x: inwardX, y: height - inwardY } : { x: 0, y: height },
     xPoint: { x: offsetX, y: height },
     yPoint: { x: 0, y: height - offsetY },
   };
+}
+
+function getRectanglePolygon(width, height) {
+  return [
+    { x: 0, y: 0 },
+    { x: width, y: 0 },
+    { x: width, y: height },
+    { x: 0, y: height },
+  ];
+}
+
+function getCornerPoint(corner, width, height) {
+  if (corner === "tl") return { x: 0, y: 0 };
+  if (corner === "tr") return { x: width, y: 0 };
+  if (corner === "br") return { x: width, y: height };
+  return { x: 0, y: height };
+}
+
+function getFoldLine(corner, fold, width, height) {
+  if (!fold.enabled) return null;
+  const points = getFoldPoints(corner, fold, width, height);
+  const cornerPoint = getCornerPoint(corner, width, height);
+  const normal = {
+    x: points.tip.x - cornerPoint.x,
+    y: points.tip.y - cornerPoint.y,
+  };
+  const normalLengthSq = normal.x * normal.x + normal.y * normal.y;
+
+  if (normalLengthSq < 1) return null;
+
+  const midpoint = {
+    x: (cornerPoint.x + points.tip.x) / 2,
+    y: (cornerPoint.y + points.tip.y) / 2,
+  };
+
+  return {
+    cornerPoint,
+    midpoint,
+    normal,
+    normalLengthSq,
+    cornerSign: -1,
+  };
+}
+
+function getLineDistance(point, line) {
+  return (point.x - line.midpoint.x) * line.normal.x + (point.y - line.midpoint.y) * line.normal.y;
+}
+
+function getLineIntersection(start, end, line) {
+  const startDistance = getLineDistance(start, line);
+  const endDistance = getLineDistance(end, line);
+  const t = startDistance / (startDistance - endDistance);
+
+  return {
+    x: start.x + (end.x - start.x) * t,
+    y: start.y + (end.y - start.y) * t,
+  };
+}
+
+function clipPolygonToFoldSide(polygon, line, keepFoldedSide) {
+  if (polygon.length === 0) return [];
+  const clipped = [];
+  const isInside = (point) => {
+    const side = getLineDistance(point, line) * line.cornerSign;
+    return keepFoldedSide ? side >= -0.001 : side <= 0.001;
+  };
+
+  for (let index = 0; index < polygon.length; index += 1) {
+    const current = polygon[index];
+    const previous = polygon[(index + polygon.length - 1) % polygon.length];
+    const currentInside = isInside(current);
+    const previousInside = isInside(previous);
+
+    if (currentInside !== previousInside) clipped.push(getLineIntersection(previous, current, line));
+    if (currentInside) clipped.push(current);
+  }
+
+  return clipped;
+}
+
+function reflectPointAcrossFold(point, line) {
+  const distance = getLineDistance(point, line);
+  const factor = (2 * distance) / line.normalLengthSq;
+
+  return {
+    x: point.x - factor * line.normal.x,
+    y: point.y - factor * line.normal.y,
+  };
+}
+
+function addPolygonPath(ctx, polygon) {
+  ctx.beginPath();
+  if (polygon.length === 0) {
+    ctx.rect(0, 0, 0, 0);
+    return;
+  }
+
+  ctx.moveTo(polygon[0].x, polygon[0].y);
+  polygon.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
+  ctx.closePath();
+}
+
+function getFoldGeometry(corner, fold, width, height, sourcePolygon = getRectanglePolygon(width, height)) {
+  const line = getFoldLine(corner, fold, width, height);
+  if (!line) return null;
+
+  const foldedPolygon = clipPolygonToFoldSide(sourcePolygon, line, true);
+  if (foldedPolygon.length < 3) return null;
+
+  return {
+    line,
+    foldedPolygon,
+    reflectedPolygon: foldedPolygon.map((point) => reflectPointAcrossFold(point, line)),
+  };
+}
+
+function getFoldGeometries(width, height) {
+  let visiblePolygon = getRectanglePolygon(width, height);
+  const geometries = [];
+
+  corners.forEach((corner) => {
+    const geometry = getFoldGeometry(corner, state.folds[corner], width, height, visiblePolygon);
+    if (!geometry) return;
+
+    geometries.push(geometry);
+    visiblePolygon = clipPolygonToFoldSide(visiblePolygon, geometry.line, false);
+  });
+
+  return { geometries, visiblePolygon };
+}
+
+function getVisiblePaperPolygon(width, height) {
+  return getFoldGeometries(width, height).visiblePolygon;
+}
+
+function getPointsOnEdge(polygon, edge, width, height) {
+  const tolerance = 0.5;
+
+  return polygon.filter((point) => {
+    if (edge === "top") return Math.abs(point.y) <= tolerance;
+    if (edge === "right") return Math.abs(point.x - width) <= tolerance;
+    if (edge === "bottom") return Math.abs(point.y - height) <= tolerance;
+    return Math.abs(point.x) <= tolerance;
+  });
+}
+
+function getFoldEdgeUsage(corner, fold, width, height) {
+  const geometry = getFoldGeometry(corner, fold, width, height);
+  if (!geometry) return { top: 0, right: 0, bottom: 0, left: 0 };
+
+  const getLength = (edge) => {
+    const points = getPointsOnEdge(geometry.foldedPolygon, edge, width, height);
+    if (points.length < 2) return 0;
+    const values = points.map((point) => (edge === "top" || edge === "bottom" ? point.x : point.y));
+
+    return Math.max(...values) - Math.min(...values);
+  };
+
+  return {
+    top: corner === "tl" || corner === "tr" ? getLength("top") : 0,
+    right: corner === "tr" || corner === "br" ? getLength("right") : 0,
+    bottom: corner === "bl" || corner === "br" ? getLength("bottom") : 0,
+    left: corner === "tl" || corner === "bl" ? getLength("left") : 0,
+  };
+}
+
+function normalizeStateFold(corner, width, height) {
+  const fold = state.folds[corner];
+  const normalized = normalizeFoldRatios(fold.x, fold.y, width, height);
+
+  fold.enabled = normalized.enabled;
+  fold.x = normalized.x;
+  fold.y = normalized.y;
+}
+
+function keepDraggedFoldInsideOpenEdges(corner, width, height) {
+  const fold = state.folds[corner];
+  if (!fold.enabled) return;
+
+  const edgeRules = {
+    tl: [
+      { edge: "top", neighbor: "tr", length: width },
+      { edge: "left", neighbor: "bl", length: height },
+    ],
+    tr: [
+      { edge: "top", neighbor: "tl", length: width },
+      { edge: "right", neighbor: "br", length: height },
+    ],
+    br: [
+      { edge: "right", neighbor: "tr", length: height },
+      { edge: "bottom", neighbor: "bl", length: width },
+    ],
+    bl: [
+      { edge: "bottom", neighbor: "br", length: width },
+      { edge: "left", neighbor: "tl", length: height },
+    ],
+  };
+
+  for (let index = 0; index < 8; index += 1) {
+    const currentUse = getFoldEdgeUsage(corner, fold, width, height);
+    let scale = 1;
+
+    edgeRules[corner].forEach(({ edge, neighbor, length }) => {
+      const neighborUse = getFoldEdgeUsage(neighbor, state.folds[neighbor], width, height);
+      const gap = Math.max(12, length * foldEdgeGapRatio);
+      const available = Math.max(0, length - gap - neighborUse[edge]);
+      if (currentUse[edge] > available && currentUse[edge] > 0) {
+        scale = Math.min(scale, available / currentUse[edge]);
+      }
+    });
+
+    if (scale > 0.999) break;
+    fold.x *= scale;
+    fold.y *= scale;
+    normalizeStateFold(corner, width, height);
+    if (!fold.enabled) break;
+  }
 }
 
 function getInwardFromLocal(corner, local) {
@@ -231,41 +492,7 @@ function syncFoldHandles() {
 }
 
 function addFrontPath(ctx, width, height) {
-  const { folds } = state;
-  const tl = getFoldPoints("tl", folds.tl, width, height);
-  const tr = getFoldPoints("tr", folds.tr, width, height);
-  const br = getFoldPoints("br", folds.br, width, height);
-  const bl = getFoldPoints("bl", folds.bl, width, height);
-
-  ctx.beginPath();
-  if (folds.tl.enabled) ctx.moveTo(tl.xPoint.x, tl.xPoint.y);
-  else ctx.moveTo(0, 0);
-
-  if (folds.tr.enabled) {
-    ctx.lineTo(tr.xPoint.x, tr.xPoint.y);
-    ctx.lineTo(tr.yPoint.x, tr.yPoint.y);
-  } else {
-    ctx.lineTo(width, 0);
-  }
-
-  if (folds.br.enabled) {
-    ctx.lineTo(br.yPoint.x, br.yPoint.y);
-    ctx.lineTo(br.xPoint.x, br.xPoint.y);
-  } else {
-    ctx.lineTo(width, height);
-  }
-
-  if (folds.bl.enabled) {
-    ctx.lineTo(bl.xPoint.x, bl.xPoint.y);
-    ctx.lineTo(bl.yPoint.x, bl.yPoint.y);
-  } else {
-    ctx.lineTo(0, height);
-  }
-
-  if (folds.tl.enabled) ctx.lineTo(tl.yPoint.x, tl.yPoint.y);
-  else ctx.lineTo(0, 0);
-
-  ctx.closePath();
+  addPolygonPath(ctx, getVisiblePaperPolygon(width, height));
 }
 
 function drawCoverImage(ctx, image, x, y, width, height) {
@@ -394,8 +621,10 @@ function renderComposition(targetCanvas, showGuides) {
   ctx.translate(frame.width / 2, frame.height / 2);
   ctx.translate(-paperWidth / 2, -paperHeight / 2);
 
+  const foldRender = getFoldGeometries(paperWidth, paperHeight);
+
   ctx.save();
-  addFrontPath(ctx, paperWidth, paperHeight);
+  addPolygonPath(ctx, foldRender.visiblePolygon);
   ctx.clip();
   ctx.fillStyle = state.front.hex;
   ctx.fillRect(0, 0, paperWidth, paperHeight);
@@ -410,15 +639,8 @@ function renderComposition(targetCanvas, showGuides) {
   }
   ctx.restore();
 
-  for (const corner of corners) {
-    const fold = state.folds[corner];
-    if (!fold.enabled) continue;
-    const points = getFoldPoints(corner, fold, paperWidth, paperHeight);
-    ctx.beginPath();
-    ctx.moveTo(points.xPoint.x, points.xPoint.y);
-    ctx.lineTo(points.tip.x, points.tip.y);
-    ctx.lineTo(points.yPoint.x, points.yPoint.y);
-    ctx.closePath();
+  for (const geometry of foldRender.geometries) {
+    addPolygonPath(ctx, geometry.reflectedPolygon);
     ctx.fillStyle = state.back.hex;
     ctx.fill();
   }
@@ -569,21 +791,19 @@ function moveHandle(handle, local) {
     pushHistory();
     dragHandle.saved = true;
   }
-  const minimum = 0.018;
-  const maximum = 0.82;
   const fold = state.folds[handle.corner];
   const inward = getInwardFromLocal(handle.corner, local);
-  const x = clamp(inward.x, 0, maximum);
-  const y = clamp(inward.y, 0, maximum);
+  const normalized = normalizeFoldRatios(inward.x, inward.y, local.paperWidth, local.paperHeight);
 
-  if (x < minimum || y < minimum) {
+  if (!normalized.enabled) {
     fold.enabled = false;
     fold.x = 0;
     fold.y = 0;
   } else {
     fold.enabled = true;
-    fold.x = x;
-    fold.y = y;
+    fold.x = normalized.x;
+    fold.y = normalized.y;
+    keepDraggedFoldInsideOpenEdges(handle.corner, local.paperWidth, local.paperHeight);
   }
 
   syncControls();
