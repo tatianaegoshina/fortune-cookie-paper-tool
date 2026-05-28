@@ -29,7 +29,6 @@ const defaultState = {
   background: palette[4],
   front: palette[10],
   back: palette[0],
-  rotation: 0,
   text: "PEEL",
   textSize: 260,
   folds: {
@@ -52,13 +51,10 @@ const paperModeOptions = document.querySelector("[data-paper-mode-options]");
 const backgroundOptions = document.querySelector("[data-background-options]");
 const frontOptions = document.querySelector("[data-front-options]");
 const backOptions = document.querySelector("[data-back-options]");
-const foldOptions = document.querySelector("[data-fold-options]");
 const paperWidthInput = document.querySelector("#paper-width");
 const paperHeightInput = document.querySelector("#paper-height");
 const imageInput = document.querySelector("#image-input");
 const textInput = document.querySelector("#text-input");
-const rotateInput = document.querySelector("#rotate-input");
-const rotationLabel = document.querySelector("[data-rotation-label]");
 const undoButton = document.querySelector("[data-action='undo']");
 const foldCount = document.querySelector("[data-fold-count]");
 
@@ -277,7 +273,6 @@ function renderComposition(targetCanvas, showGuides) {
 
   ctx.save();
   ctx.translate(frame.width / 2, frame.height / 2);
-  ctx.rotate((state.rotation * Math.PI) / 180);
   ctx.translate(-paperWidth / 2, -paperHeight / 2);
 
   ctx.save();
@@ -443,29 +438,12 @@ function syncControls() {
     ),
   );
 
-  foldOptions.replaceChildren(
-    ...corners.map((corner) =>
-      makeButton(corner, state.folds[corner].enabled, () => {
-        applyChange(() => {
-          const fold = state.folds[corner];
-          fold.enabled = !fold.enabled;
-          if (fold.enabled && (fold.x < 0.018 || fold.y < 0.018)) {
-            fold.x = 0.24;
-            fold.y = 0.24;
-          }
-        });
-      }),
-    ),
-  );
-
   const paperSize = getPaperSize();
   paperWidthInput.value = String(Math.round(state.paper.mode === "fill" ? paperSize.width : state.paper.width));
   paperHeightInput.value = String(Math.round(state.paper.mode === "fill" ? paperSize.height : state.paper.height));
   paperWidthInput.disabled = state.paper.mode === "fill";
   paperHeightInput.disabled = state.paper.mode === "fill";
   textInput.value = state.text;
-  rotateInput.value = String(state.rotation);
-  rotationLabel.textContent = `${state.rotation}°`;
   syncFoldStatus();
   syncUndoState();
 }
@@ -475,15 +453,12 @@ function getLocalPointer(event) {
   const canvasX = ((event.clientX - rect.left) / rect.width) * state.frame.width;
   const canvasY = ((event.clientY - rect.top) / rect.height) * state.frame.height;
   const paperSize = getPaperSize();
-  const angle = (-state.rotation * Math.PI) / 180;
   const translatedX = canvasX - state.frame.width / 2;
   const translatedY = canvasY - state.frame.height / 2;
-  const rotatedX = translatedX * Math.cos(angle) - translatedY * Math.sin(angle);
-  const rotatedY = translatedX * Math.sin(angle) + translatedY * Math.cos(angle);
 
   return {
-    x: rotatedX + paperSize.width / 2,
-    y: rotatedY + paperSize.height / 2,
+    x: translatedX + paperSize.width / 2,
+    y: translatedY + paperSize.height / 2,
     paperWidth: paperSize.width,
     paperHeight: paperSize.height,
   };
@@ -577,13 +552,6 @@ paperHeightInput.addEventListener("input", () => {
 textInput.addEventListener("input", () => {
   pushHistory();
   state.text = textInput.value;
-  renderComposition(canvas, true);
-});
-
-rotateInput.addEventListener("input", () => {
-  pushHistory();
-  state.rotation = Number(rotateInput.value);
-  rotationLabel.textContent = `${state.rotation}°`;
   renderComposition(canvas, true);
 });
 

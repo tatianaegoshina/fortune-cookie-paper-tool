@@ -10,29 +10,16 @@
     <main class="app-shell">
       <header class="topbar" aria-label="Editor controls">
         <input id="image-input" class="file-input" type="file" accept="image/*" />
-        <button type="button" class="nav-command" data-action="load-image">Load image</button>
-
-        <details class="menu-panel primary-panel">
-          <summary>Back</summary>
-          <div class="menu-content">
-            <div class="swatch-grid" data-back-options></div>
-          </div>
-        </details>
-
-        <button type="button" class="nav-command" data-action="reset">Reset</button>
-        <button type="button" class="nav-command" data-action="undo">Undo</button>
-        <button type="button" class="nav-command" data-action="export">Export</button>
-
-        <span class="toolbar-spacer"></span>
-
-        <details class="menu-panel secondary-panel">
+        <details class="menu-panel">
           <summary>Frame</summary>
           <div class="menu-content compact-content">
             <div class="button-grid" data-frame-options></div>
           </div>
         </details>
 
-        <details class="menu-panel secondary-panel">
+        <button type="button" class="nav-command" data-action="load-image">Image</button>
+
+        <details class="menu-panel">
           <summary>Paper size</summary>
           <div class="menu-content">
             <div class="segmented" data-paper-mode-options></div>
@@ -49,44 +36,37 @@
           </div>
         </details>
 
-        <details class="menu-panel secondary-panel">
-          <summary>Background</summary>
-          <div class="menu-content">
-            <div class="swatch-grid" data-background-options></div>
-          </div>
-        </details>
-
-        <details class="menu-panel secondary-panel">
+        <details class="menu-panel">
           <summary>Color</summary>
           <div class="menu-content">
             <div class="swatch-grid" data-front-options></div>
           </div>
         </details>
 
-        <details class="menu-panel secondary-panel">
+        <details class="menu-panel">
           <summary>Folds</summary>
           <div class="menu-content compact-content">
-            <div class="corner-grid" data-fold-options></div>
+            <div class="swatch-grid" data-back-options></div>
           </div>
         </details>
 
-        <details class="menu-panel secondary-panel text-menu">
+        <details class="menu-panel">
+          <summary>Background</summary>
+          <div class="menu-content">
+            <div class="swatch-grid" data-background-options></div>
+          </div>
+        </details>
+
+        <details class="menu-panel text-menu">
           <summary>Text</summary>
           <div class="menu-content">
             <textarea id="text-input" spellcheck="false"></textarea>
           </div>
         </details>
 
-        <details class="menu-panel secondary-panel">
-          <summary>Rotate</summary>
-          <div class="menu-content">
-            <label class="slider-label">
-              <span data-rotation-label>0°</span>
-              <input id="rotate-input" type="range" min="-45" max="45" />
-            </label>
-          </div>
-        </details>
-
+        <button type="button" class="nav-command" data-action="undo">Undo</button>
+        <button type="button" class="nav-command" data-action="reset">Reset</button>
+        <button type="button" class="nav-command" data-action="export">Export</button>
       </header>
 
       <section class="canvas-stage" aria-label="Composition preview">

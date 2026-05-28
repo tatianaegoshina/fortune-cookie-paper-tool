@@ -9,8 +9,8 @@
 }
 
 :root {
-  color: #8b8b8b;
-  background: #000000;
+  color: #5f5f5f;
+  background: #ffffff;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: geometricPrecision;
@@ -24,7 +24,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #000000;
+  background: #ffffff;
 }
 
 button,
@@ -48,7 +48,7 @@ button {
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 100vh;
   overflow: hidden;
-  background: #000000;
+  background: #ffffff;
 }
 
 .topbar {
@@ -56,11 +56,11 @@ button {
   z-index: 5;
   display: flex;
   align-items: center;
-  gap: clamp(18px, 2.1vw, 42px);
-  min-height: 144px;
-  padding: clamp(44px, 6.5vh, 94px) clamp(28px, 5vw, 90px) 18px;
-  color: #8b8b8b;
-  font-size: clamp(26px, 2.2vw, 52px);
+  gap: clamp(18px, 2vw, 34px);
+  min-height: 86px;
+  padding: 30px clamp(22px, 4vw, 58px) 14px;
+  color: #5f5f5f;
+  font-size: clamp(20px, 1.65vw, 34px);
   font-weight: 400;
   line-height: 1;
   white-space: nowrap;
@@ -76,7 +76,7 @@ button {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #8b8b8b;
+  color: #5f5f5f;
   font-weight: 400;
   letter-spacing: 0;
   line-height: 1;
@@ -103,15 +103,7 @@ button {
 }
 
 .nav-command:disabled:hover {
-  color: #8b8b8b;
-}
-
-.secondary-panel {
-  font-size: clamp(14px, 1vw, 18px);
-}
-
-.toolbar-spacer {
-  flex: 1 1 auto;
+  color: #5f5f5f;
 }
 
 .menu-panel {
@@ -133,7 +125,7 @@ button {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  color: #8b8b8b;
+  color: #5f5f5f;
   font-size: inherit;
   font-weight: 400;
   white-space: normal;
@@ -150,7 +142,6 @@ button {
 }
 
 .button-grid,
-.corner-grid,
 .segmented,
 .swatch-grid {
   display: grid;
@@ -175,7 +166,7 @@ button {
 .slider-label {
   display: grid;
   gap: 8px;
-  color: #8b8b8b;
+  color: #5f5f5f;
   font-size: inherit;
   font-weight: 400;
   line-height: 1;
@@ -189,7 +180,7 @@ textarea {
   border-radius: 0;
   outline: 0;
   background: transparent;
-  color: #8b8b8b;
+  color: #5f5f5f;
   font-weight: 400;
 }
 
@@ -216,7 +207,7 @@ input:disabled {
 
 input[type="range"] {
   width: 100%;
-  accent-color: #8b8b8b;
+  accent-color: #5f5f5f;
 }
 
 input[type="range"]:hover {
@@ -234,7 +225,7 @@ input[type="range"]:hover {
   min-height: 0;
   padding: 0 clamp(20px, 6vw, 120px) 40px;
   overflow: hidden;
-  background: #000000;
+  background: #ffffff;
 }
 
 canvas {
@@ -260,7 +251,7 @@ canvas.is-dragging {
   gap: 18px;
   min-height: 76px;
   padding: 0 clamp(26px, 5vw, 86px) 28px;
-  color: #8b8b8b;
+  color: #5f5f5f;
   font-size: clamp(12px, 0.9vw, 18px);
   font-weight: 400;
   line-height: 1.2;
@@ -276,14 +267,10 @@ canvas.is-dragging {
 
 @media (max-width: 1120px) {
   .topbar {
-    min-height: 112px;
+    min-height: 78px;
     overflow-x: auto;
-    padding-top: 34px;
-    font-size: 30px;
-  }
-
-  .secondary-panel {
-    font-size: 14px;
+    padding-top: 24px;
+    font-size: 22px;
   }
 
   .menu-content {
@@ -306,13 +293,9 @@ canvas.is-dragging {
 @media (max-width: 700px) {
   .topbar {
     gap: 18px;
-    min-height: 96px;
-    padding: 24px 18px 10px;
-    font-size: 25px;
-  }
-
-  .secondary-panel {
-    font-size: 13px;
+    min-height: 72px;
+    padding: 20px 18px 10px;
+    font-size: 20px;
   }
 
   .canvas-stage {
