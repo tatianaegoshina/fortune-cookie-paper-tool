@@ -328,6 +328,21 @@ function addPolygonPath(ctx, polygon) {
   ctx.closePath();
 }
 
+function isPointInPolygon(point, polygon) {
+  let inside = false;
+
+  for (let index = 0, previousIndex = polygon.length - 1; index < polygon.length; previousIndex = index, index += 1) {
+    const current = polygon[index];
+    const previous = polygon[previousIndex];
+    const crossesY = current.y > point.y !== previous.y > point.y;
+    const intersectX = ((previous.x - current.x) * (point.y - current.y)) / (previous.y - current.y) + current.x;
+
+    if (crossesY && point.x < intersectX) inside = !inside;
+  }
+
+  return inside;
+}
+
 function getFoldGeometry(corner, fold, width, height, sourcePolygon = getRectanglePolygon(width, height)) {
   const line = getFoldLine(corner, fold, width, height);
   if (!line) return null;
@@ -561,6 +576,10 @@ function isTextHit(local) {
   const bottom = layout.startY + (layout.lines.length - 1) * layout.lineHeight + layout.fontSize / 2;
 
   return local.x >= left && local.x <= right && local.y >= top && local.y <= bottom;
+}
+
+function isPaperHit(local) {
+  return isPointInPolygon({ x: local.x, y: local.y }, getVisiblePaperPolygon(local.paperWidth, local.paperHeight));
 }
 
 function openTextEditor(selectText = true) {
@@ -910,6 +929,14 @@ canvas.addEventListener("pointerdown", (event) => {
   syncFoldStatus();
   renderComposition(canvas, true);
   syncFoldHandles();
+});
+
+canvas.addEventListener("dblclick", (event) => {
+  const local = getLocalPointer(event);
+  if (state.text.trim() || !isPaperHit(local)) return;
+
+  event.preventDefault();
+  openTextEditor();
 });
 
 canvas.addEventListener("pointermove", (event) => {
