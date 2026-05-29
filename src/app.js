@@ -109,6 +109,10 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function getPreviewRenderScale() {
+  return Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+}
+
 function snapshotState() {
   return {
     state: cloneState(state),
@@ -624,14 +628,22 @@ function closeTextEditor(render = true) {
   if (wasEditing && render) renderComposition(canvas, true);
 }
 
-function renderComposition(targetCanvas, showGuides) {
+function renderComposition(targetCanvas, showGuides, renderScale = targetCanvas === canvas ? getPreviewRenderScale() : 1) {
   const { frame } = state;
   const { width: paperWidth, height: paperHeight } = getPaperSize();
   const ctx = targetCanvas.getContext("2d");
   if (!ctx) return;
 
-  targetCanvas.width = frame.width;
-  targetCanvas.height = frame.height;
+  targetCanvas.width = Math.round(frame.width * renderScale);
+  targetCanvas.height = Math.round(frame.height * renderScale);
+  if (targetCanvas === canvas) {
+    targetCanvas.style.aspectRatio = `${frame.width} / ${frame.height}`;
+    targetCanvas.style.width = `${frame.width}px`;
+    targetCanvas.style.height = "auto";
+  }
+  ctx.setTransform(renderScale, 0, 0, renderScale, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.clearRect(0, 0, frame.width, frame.height);
 
   if (state.background.hex !== "transparent") {
@@ -838,13 +850,13 @@ function exportPng() {
   const finish = () => {
     closeTextEditor(false);
     const exportCanvas = document.createElement("canvas");
-    renderComposition(exportCanvas, false);
+    renderComposition(exportCanvas, false, 2);
     exportCanvas.toBlob((blob) => {
       if (!blob) return;
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `fortune-cookie-paper-${state.frame.label}.png`;
+      link.download = `fortune-cookie-paper-${state.frame.label}@2x.png`;
       link.click();
       URL.revokeObjectURL(url);
     }, "image/png");

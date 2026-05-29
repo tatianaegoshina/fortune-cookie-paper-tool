@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@500&display=swap");
 
 @font-face {
   font-family: "GT Ultra Median";
@@ -33,7 +33,7 @@ textarea,
 summary,
 label {
   font: inherit;
-  font-weight: 400;
+  font-weight: 500;
   font-synthesis: none;
 }
 
@@ -67,19 +67,19 @@ button {
   min-height: 86px;
   padding: 30px clamp(22px, 4vw, 58px) 14px;
   color: #5f5f5f;
-  font-size: clamp(20px, 1.65vw, 34px);
-  font-weight: 400;
+  font-size: 18px;
+  font-weight: 500;
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
-  font-variation-settings: "wght" 400;
+  font-variation-settings: "wght" 500;
   line-height: 1;
   white-space: nowrap;
 }
 
 .topbar * {
-  font-weight: 400 !important;
+  font-weight: 500 !important;
   font-synthesis: none;
-  font-variation-settings: "wght" 400;
+  font-variation-settings: "wght" 500;
 }
 
 .menu-group {
@@ -107,7 +107,7 @@ button {
   color: #5f5f5f;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: inherit;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: 0;
   line-height: 1;
   list-style: none;
@@ -155,7 +155,7 @@ button {
   box-shadow: none;
   color: #5f5f5f;
   font-size: inherit;
-  font-weight: 400;
+  font-weight: 500;
   white-space: normal;
 }
 
@@ -191,7 +191,7 @@ button {
   gap: 12px;
   color: #5f5f5f;
   font-size: inherit;
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1;
 }
 
@@ -204,7 +204,7 @@ textarea {
   outline: 0;
   background: transparent;
   color: #5f5f5f;
-  font-weight: 400;
+  font-weight: 500;
 }
 
 input[type="number"] {
@@ -298,6 +298,7 @@ input[type="range"]:hover {
   background: transparent;
   color: inherit;
   font-family: "GT Ultra Median", Georgia, serif;
+  font-weight: 400;
   line-height: 0.98;
   text-align: center;
   caret-color: currentColor;
@@ -326,7 +327,7 @@ canvas.is-dragging {
     min-height: 78px;
     overflow-x: auto;
     padding-top: 24px;
-    font-size: 22px;
+    font-size: 18px;
   }
 
   .menu-group {
@@ -350,7 +351,7 @@ canvas.is-dragging {
     gap: 18px;
     min-height: 72px;
     padding: 20px 18px 10px;
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .canvas-stage {
