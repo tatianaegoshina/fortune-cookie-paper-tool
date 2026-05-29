@@ -45,7 +45,7 @@ function getRandomFortune() {
 
 const defaultState = {
   frame: framePresets[0],
-  paper: { mode: "custom", width: 1100, height: 250 },
+  paper: { mode: "custom", width: 1100, height: 250, rotation: 0 },
   background: palette[6],
   front: palette[7],
   back: palette[8],
@@ -76,6 +76,7 @@ const frontOptions = document.querySelector("[data-front-options]");
 const backOptions = document.querySelector("[data-back-options]");
 const paperWidthInput = document.querySelector("#paper-width");
 const paperHeightInput = document.querySelector("#paper-height");
+const paperRotationInput = document.querySelector("#paper-rotation");
 const textSizeInput = document.querySelector("#text-size");
 const imageInput = document.querySelector("#image-input");
 const textInput = document.querySelector("#text-input");
@@ -107,6 +108,18 @@ function cloneState(source) {
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function normalizeDegrees(degrees) {
+  return ((((degrees + 180) % 360) + 360) % 360) - 180;
+}
+
+function formatDegrees(degrees) {
+  return Number(normalizeDegrees(degrees).toFixed(2));
+}
+
+function degreesToRadians(degrees) {
+  return (degrees * Math.PI) / 180;
 }
 
 function getPreviewRenderScale() {
@@ -153,6 +166,48 @@ function getPaperSize() {
     width: clamp(state.paper.width, 80, state.frame.width * 2),
     height: clamp(state.paper.height, 80, state.frame.height * 2),
   };
+}
+
+function getPaperRotation() {
+  return normalizeDegrees(Number(state.paper.rotation) || 0);
+}
+
+function getRotatedPaperBounds(width, height, degrees) {
+  const radians = degreesToRadians(degrees);
+  const cos = Math.abs(Math.cos(radians));
+  const sin = Math.abs(Math.sin(radians));
+
+  return {
+    width: width * cos + height * sin,
+    height: width * sin + height * cos,
+  };
+}
+
+function canPaperRotationFit(degrees, width, height, frame = state.frame) {
+  const bounds = getRotatedPaperBounds(width, height, degrees);
+  const tolerance = 0.01;
+
+  return bounds.width <= frame.width + tolerance && bounds.height <= frame.height + tolerance;
+}
+
+function constrainPaperRotation(degrees, width, height, frame = state.frame) {
+  const normalized = normalizeDegrees(Number(degrees) || 0);
+  if (canPaperRotationFit(normalized, width, height, frame)) return formatDegrees(normalized);
+
+  for (let offset = 0.25; offset <= 180; offset += 0.25) {
+    const lower = normalizeDegrees(normalized - offset);
+    if (canPaperRotationFit(lower, width, height, frame)) return formatDegrees(lower);
+
+    const upper = normalizeDegrees(normalized + offset);
+    if (canPaperRotationFit(upper, width, height, frame)) return formatDegrees(upper);
+  }
+
+  return 0;
+}
+
+function constrainCurrentPaperRotation() {
+  const { width, height } = getPaperSize();
+  state.paper.rotation = constrainPaperRotation(getPaperRotation(), width, height);
 }
 
 function getFoldOffsets(inwardX, inwardY) {
@@ -489,12 +544,17 @@ function getPaperPointViewport(point, paperWidth, paperHeight) {
   const stageRect = canvas.parentElement.getBoundingClientRect();
   const scaleX = rect.width / state.frame.width;
   const scaleY = rect.height / state.frame.height;
-  const paperLeft = rect.left - stageRect.left + ((state.frame.width - paperWidth) / 2) * scaleX;
-  const paperTop = rect.top - stageRect.top + ((state.frame.height - paperHeight) / 2) * scaleY;
+  const radians = degreesToRadians(getPaperRotation());
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const centeredX = point.x - paperWidth / 2;
+  const centeredY = point.y - paperHeight / 2;
+  const canvasX = state.frame.width / 2 + centeredX * cos - centeredY * sin;
+  const canvasY = state.frame.height / 2 + centeredX * sin + centeredY * cos;
 
   return {
-    x: paperLeft + point.x * scaleX,
-    y: paperTop + point.y * scaleY,
+    x: rect.left - stageRect.left + canvasX * scaleX,
+    y: rect.top - stageRect.top + canvasY * scaleY,
   };
 }
 
@@ -613,6 +673,7 @@ function openTextEditor(selectText = true, closeMenus = true) {
   textInput.style.fontSize = `${layout.fontSize * scaleY}px`;
   textInput.style.letterSpacing = `${layout.fontSize * scaleY * -0.006}px`;
   textInput.style.color = textColor;
+  textInput.style.transform = `rotate(${getPaperRotation()}deg)`;
   textInput.classList.add("is-editing");
   renderComposition(canvas, true);
   if (selectText) {
@@ -653,6 +714,7 @@ function renderComposition(targetCanvas, showGuides, renderScale = targetCanvas 
 
   ctx.save();
   ctx.translate(frame.width / 2, frame.height / 2);
+  ctx.rotate(degreesToRadians(getPaperRotation()));
   ctx.translate(-paperWidth / 2, -paperHeight / 2);
 
   const foldRender = getFoldGeometries(paperWidth, paperHeight);
@@ -728,6 +790,7 @@ function syncControls() {
         applyChange(() => {
           state.frame = preset;
           state.textSize = preset.textSize;
+          constrainCurrentPaperRotation();
         });
       }),
     ),
@@ -737,6 +800,7 @@ function syncControls() {
     makeButton("fill", state.paper.mode === "fill", () => {
       applyChange(() => {
         state.paper.mode = "fill";
+        constrainCurrentPaperRotation();
       });
     }),
     makeButton("custom", state.paper.mode === "custom", () => {
@@ -744,6 +808,7 @@ function syncControls() {
         state.paper.mode = "custom";
         state.paper.width = state.frame.width;
         state.paper.height = state.frame.height;
+        constrainCurrentPaperRotation();
       });
     }),
   );
@@ -782,6 +847,7 @@ function syncControls() {
   paperWidthInput.value = String(Math.round(state.paper.mode === "fill" ? paperSize.width : state.paper.width));
   paperHeightInput.value = String(Math.round(state.paper.mode === "fill" ? paperSize.height : state.paper.height));
   paperCustomFields.hidden = state.paper.mode !== "custom";
+  paperRotationInput.value = String(formatDegrees(getPaperRotation()));
   textSizeInput.value = String(Math.round(state.textSize));
   textInput.value = state.text;
   syncFoldStatus();
@@ -795,10 +861,15 @@ function getLocalPointer(event) {
   const paperSize = getPaperSize();
   const translatedX = canvasX - state.frame.width / 2;
   const translatedY = canvasY - state.frame.height / 2;
+  const radians = degreesToRadians(-getPaperRotation());
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const paperX = translatedX * cos - translatedY * sin;
+  const paperY = translatedX * sin + translatedY * cos;
 
   return {
-    x: translatedX + paperSize.width / 2,
-    y: translatedY + paperSize.height / 2,
+    x: paperX + paperSize.width / 2,
+    y: paperY + paperSize.height / 2,
     paperWidth: paperSize.width,
     paperHeight: paperSize.height,
   };
@@ -881,12 +952,24 @@ function reset() {
 paperWidthInput.addEventListener("input", () => {
   pushHistory();
   state.paper.width = Number(paperWidthInput.value) || 80;
+  constrainCurrentPaperRotation();
+  syncControls();
   renderComposition(canvas, true);
 });
 
 paperHeightInput.addEventListener("input", () => {
   pushHistory();
   state.paper.height = Number(paperHeightInput.value) || 80;
+  constrainCurrentPaperRotation();
+  syncControls();
+  renderComposition(canvas, true);
+});
+
+paperRotationInput.addEventListener("input", () => {
+  pushHistory();
+  const { width, height } = getPaperSize();
+  state.paper.rotation = constrainPaperRotation(Number(paperRotationInput.value) || 0, width, height);
+  syncControls();
   renderComposition(canvas, true);
 });
 
