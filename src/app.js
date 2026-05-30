@@ -72,6 +72,11 @@ function getRandomRange(min, max) {
   return min + Math.random() * (max - min);
 }
 
+function getRandomPaperRotation() {
+  const direction = Math.random() < 0.5 ? -1 : 1;
+  return Number((direction * getRandomRange(5, 20)).toFixed(2));
+}
+
 function getRandomFolds() {
   const cornerSets = [
     ["tl"],
@@ -106,7 +111,7 @@ function getDefaultPaperForFrame(frame) {
     mode: "custom",
     width: Math.round(width),
     height: Math.round(width / aspectRatio),
-    rotation: 0,
+    rotation: getRandomPaperRotation(),
   };
 }
 
@@ -913,7 +918,7 @@ function syncControls() {
     makeButton("Fill", state.paper.mode === "fill", () => {
       applyChange(() => {
         state.paper.mode = "fill";
-        constrainCurrentPaperRotation();
+        state.paper.rotation = 0;
       });
     }),
     makeButton("Custom", state.paper.mode === "custom", () => {
