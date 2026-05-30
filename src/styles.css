@@ -143,11 +143,13 @@ button {
   top: calc(100% + 18px);
   left: 0;
   z-index: 10;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
   width: max-content;
   min-width: 120px;
-  max-width: min(340px, calc(100vw - 48px));
-  gap: 10px;
+  max-width: min(720px, calc(100vw - 48px));
+  gap: 10px 20px;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -165,10 +167,9 @@ button {
 
 .button-grid,
 .segmented,
-.swatch-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
+.swatch-grid,
+.number-row {
+  display: contents;
 }
 
 .select-button,
@@ -176,12 +177,6 @@ button {
   width: max-content;
   max-width: 100%;
   font-size: inherit;
-}
-
-.number-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
 }
 
 .number-row label,
