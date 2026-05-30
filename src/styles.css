@@ -11,7 +11,7 @@
 :root {
   --edge-space: clamp(18px, 3.4vw, 40px);
   --space-line: 10px;
-  --space-entity: 15px;
+  --space-entity: 20px;
   --ui-grey: #666666;
   --ui-light-grey: #a8a8a8;
   --ui-almost-black: #242424;
@@ -444,8 +444,8 @@ canvas.is-dragging {
     display: flex;
     flex: 0 0 auto;
     flex-wrap: wrap;
-    max-width: calc(100vw - var(--edge-space) * 2 - 126px);
-    width: calc(100vw - var(--edge-space) * 2 - 126px);
+    max-width: calc(100vw - var(--edge-space) * 2);
+    width: calc(100vw - var(--edge-space) * 2);
   }
 
   .menu-content {
@@ -456,8 +456,8 @@ canvas.is-dragging {
 
   .action-group {
     position: fixed;
-    top: var(--edge-space);
-    right: var(--edge-space);
+    left: var(--edge-space);
+    bottom: calc(var(--edge-space) + 32px);
     z-index: 6;
     width: auto;
     gap: var(--space-entity);
