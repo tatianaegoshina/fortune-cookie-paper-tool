@@ -9,7 +9,9 @@
 }
 
 :root {
+  --edge-space: clamp(18px, 3.4vw, 40px);
   --ui-grey: #666666;
+  --ui-light-grey: #a8a8a8;
   --ui-almost-black: #242424;
   color: var(--ui-grey);
   background: #ffffff;
@@ -53,7 +55,7 @@ button {
 .app-shell {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 100vh;
   overflow: hidden;
   background: #ffffff;
@@ -66,8 +68,8 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: clamp(18px, 2vw, 34px);
-  min-height: 86px;
-  padding: 30px clamp(22px, 4vw, 58px) 14px;
+  min-height: 0;
+  padding: var(--edge-space) var(--edge-space) 0;
   color: var(--ui-grey);
   font-size: 14px;
   font-weight: 600;
@@ -115,6 +117,11 @@ button {
   list-style: none;
   text-align: left;
   transition: color 140ms ease, opacity 140ms ease;
+}
+
+.nav-command,
+.menu-panel {
+  flex: 0 0 auto;
 }
 
 .menu-panel > summary::-webkit-details-marker {
@@ -265,9 +272,30 @@ input[type="range"]:hover {
   place-items: center;
   min-width: 0;
   min-height: 0;
-  padding: 0 clamp(20px, 6vw, 120px) 40px;
+  padding: 28px var(--edge-space);
   overflow: hidden;
   background: #ffffff;
+}
+
+.site-footer {
+  position: relative;
+  z-index: 5;
+  padding: 0 var(--edge-space) var(--edge-space);
+  color: var(--ui-light-grey);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+.site-footer a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 140ms ease;
+}
+
+.site-footer a:hover {
+  color: var(--ui-almost-black);
 }
 
 .fold-handle-layer {
@@ -323,7 +351,7 @@ canvas {
   --frame-height: 630;
   --frame-ratio: 1.9047619048;
   --canvas-max-width: min(82vw, 1680px);
-  --canvas-height-budget: calc(100vh - 260px);
+  --canvas-height-budget: calc(100vh - 240px);
   display: block;
   width: min(
     calc(var(--frame-width) * 1px),
@@ -343,43 +371,75 @@ canvas.is-dragging {
 }
 
 @media (max-width: 1120px) {
+  :root {
+    --edge-space: 24px;
+  }
+
   .topbar {
-    min-height: 78px;
-    overflow-x: auto;
-    padding-top: 24px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    row-gap: 14px;
     font-size: 14px;
   }
 
-  .menu-group {
-    flex: 0 0 auto;
+  .topbar > .menu-group:not(.action-group) {
+    flex-wrap: wrap;
+    width: 100%;
+    row-gap: 12px;
+  }
+
+  .action-group {
+    justify-content: flex-end;
+    width: 100%;
+    margin-left: 0;
   }
 
   .menu-content {
     position: fixed;
-    top: 96px;
-    left: 18px;
+    top: calc(var(--edge-space) + 36px);
+    left: var(--edge-space);
+    max-width: calc(100vw - var(--edge-space) * 2);
   }
 
   canvas {
     --canvas-max-width: 92vw;
-    --canvas-height-budget: calc(100vh - 218px);
+    --canvas-height-budget: calc(100vh - 250px);
   }
 }
 
 @media (max-width: 700px) {
+  :root {
+    --edge-space: 18px;
+  }
+
   .topbar {
-    gap: 18px;
-    min-height: 72px;
-    padding: 20px 18px 10px;
+    gap: 14px 18px;
     font-size: 14px;
+    white-space: normal;
+  }
+
+  .action-group {
+    position: fixed;
+    left: var(--edge-space);
+    bottom: calc(var(--edge-space) + 54px);
+    z-index: 6;
+    width: auto;
+    gap: 18px;
   }
 
   .canvas-stage {
-    padding: 0 12px 20px;
+    padding: 22px var(--edge-space);
+  }
+
+  .site-footer {
+    font-size: 12px;
+    line-height: 1.45;
+    max-width: calc(100vw - var(--edge-space) * 2);
   }
 
   canvas {
-    --canvas-height-budget: calc(100vh - 168px);
+    --canvas-max-width: calc(100vw - var(--edge-space) * 2);
+    --canvas-height-budget: calc(100vh - 270px);
   }
 
 }
