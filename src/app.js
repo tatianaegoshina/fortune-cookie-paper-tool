@@ -43,23 +43,50 @@ function getRandomFortune() {
   return fortunes[Math.floor(Math.random() * fortunes.length)];
 }
 
-const defaultState = {
-  frame: framePresets[0],
-  paper: { mode: "custom", width: 1100, height: 250, rotation: 0 },
-  background: palette[6],
-  front: palette[7],
-  back: palette[8],
-  text: getRandomFortune(),
-  textSize: framePresets[0].textSize,
-  folds: {
-    tl: { enabled: false, x: 0.24, y: 0.24 },
-    tr: { enabled: false, x: 0.24, y: 0.24 },
-    br: { enabled: false, x: 0.24, y: 0.24 },
-    bl: { enabled: false, x: 0.24, y: 0.24 },
-  },
-};
+function getRandomRange(min, max) {
+  return min + Math.random() * (max - min);
+}
 
-let state = cloneState(defaultState);
+function getRandomFolds() {
+  const cornerSets = [
+    ["tl"],
+    ["tr"],
+    ["br"],
+    ["bl"],
+    ["tl", "br"],
+    ["tr", "bl"],
+  ];
+  const activeCorners = cornerSets[Math.floor(Math.random() * cornerSets.length)];
+
+  return Object.fromEntries(
+    corners.map((corner) => {
+      const enabled = activeCorners.includes(corner);
+      return [
+        corner,
+        {
+          enabled,
+          x: enabled ? getRandomRange(0.08, 0.42) : 0.24,
+          y: enabled ? getRandomRange(0.14, 0.66) : 0.24,
+        },
+      ];
+    }),
+  );
+}
+
+function createDefaultState() {
+  return {
+    frame: framePresets[0],
+    paper: { mode: "custom", width: 1100, height: 250, rotation: 0 },
+    background: palette[6],
+    front: palette[7],
+    back: palette[8],
+    text: getRandomFortune(),
+    textSize: framePresets[0].textSize,
+    folds: getRandomFolds(),
+  };
+}
+
+let state = createDefaultState();
 let loadedImage = null;
 let imageSrc = null;
 let dragHandle = null;
@@ -943,7 +970,7 @@ function exportPng() {
 function reset() {
   closeTextEditor(false);
   applyChange(() => {
-    state = cloneState(defaultState);
+    state = createDefaultState();
     loadedImage = null;
     imageSrc = null;
   });
