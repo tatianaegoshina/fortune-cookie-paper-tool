@@ -15,7 +15,7 @@ const palette = [
   { name: "Red", hex: "#F82D2D" },
   { name: "Pink", hex: "#FBB1CC" },
   { name: "Plum", hex: "#BC008D" },
-  { name: "Bright blue", hex: "#289BFF" },
+  { name: "Blue", hex: "#289BFF" },
   { name: "Green", hex: "#05A95E" },
 ];
 
@@ -846,7 +846,7 @@ function loadImage(src) {
 }
 
 function capitalizeLabel(label) {
-  return String(label).replace(/(^|\s)([a-zа-яё])/g, (match, prefix, letter) => `${prefix}${letter.toUpperCase()}`);
+  return String(label).replace(/^(\s*)([a-zа-яё])/, (match, prefix, letter) => `${prefix}${letter.toUpperCase()}`);
 }
 
 function makeButton(label, active, onClick) {
