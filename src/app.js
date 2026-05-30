@@ -845,22 +845,28 @@ function loadImage(src) {
   });
 }
 
+function capitalizeLabel(label) {
+  return String(label).replace(/(^|\s)([a-zа-яё])/g, (match, prefix, letter) => `${prefix}${letter.toUpperCase()}`);
+}
+
 function makeButton(label, active, onClick) {
+  const displayLabel = capitalizeLabel(label);
   const button = document.createElement("button");
   button.type = "button";
   button.className = `select-button${active ? " is-active" : ""}`;
-  button.textContent = label;
+  button.textContent = displayLabel;
   button.addEventListener("click", onClick);
   return button;
 }
 
 function makeSwatch(color, active, onClick) {
+  const displayName = capitalizeLabel(color.name);
   const button = document.createElement("button");
   button.type = "button";
   button.className = `swatch${active ? " is-active" : ""}${color.hex === "transparent" ? " is-transparent" : ""}`;
-  button.textContent = color.name;
-  button.title = `${color.name} ${color.hex}`;
-  button.setAttribute("aria-label", color.name);
+  button.textContent = displayName;
+  button.title = `${displayName} ${color.hex}`;
+  button.setAttribute("aria-label", displayName);
   button.addEventListener("click", onClick);
   return button;
 }
