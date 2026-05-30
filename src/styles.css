@@ -165,6 +165,10 @@ button {
   width: max-content;
 }
 
+.numeric-menu {
+  gap: 10px 12px;
+}
+
 .button-grid,
 .segmented,
 .swatch-grid,
@@ -203,7 +207,7 @@ textarea {
 }
 
 input[type="number"] {
-  width: 7ch;
+  width: 4ch;
   height: 1.2em;
   -moz-appearance: textfield;
 }
