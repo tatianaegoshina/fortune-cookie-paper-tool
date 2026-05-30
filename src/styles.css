@@ -300,6 +300,10 @@ input[type="range"]:hover {
   color: var(--ui-almost-black);
 }
 
+.site-footer-credit {
+  white-space: nowrap;
+}
+
 .fold-handle-layer {
   position: absolute;
   inset: 0;
