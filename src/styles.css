@@ -183,7 +183,7 @@ button {
 .slider-label {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: 0.25em;
   color: #464646;
   font-size: inherit;
   font-weight: 600;
