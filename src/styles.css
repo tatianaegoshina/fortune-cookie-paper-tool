@@ -385,23 +385,23 @@ canvas.is-dragging {
   }
 
   .topbar > .menu-group:not(.action-group) {
-    flex: 0 0 100%;
+    flex: 1 1 auto;
     flex-wrap: wrap;
-    max-width: 100%;
-    width: 100%;
+    max-width: calc(100% - 150px);
+    width: auto;
     row-gap: var(--space-line);
   }
 
   .action-group {
     justify-content: flex-end;
-    width: 100%;
-    margin-left: 0;
+    width: auto;
+    margin-left: auto;
   }
 
   .menu-content {
-    position: fixed;
-    top: calc(var(--edge-space) + 36px);
-    left: var(--edge-space);
+    position: absolute;
+    top: calc(100% + var(--space-entity));
+    left: 0;
     max-width: calc(100vw - var(--edge-space) * 2);
   }
 
@@ -416,38 +416,74 @@ canvas.is-dragging {
     --edge-space: 18px;
   }
 
+  body {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .app-shell {
+    display: block;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+  }
+
   .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
     gap: var(--space-line) var(--space-entity);
+    padding: var(--edge-space) var(--edge-space) 0;
     font-size: 14px;
     white-space: normal;
   }
 
+  .topbar > .menu-group:not(.action-group) {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    max-width: calc(100vw - var(--edge-space) * 2 - 126px);
+    width: calc(100vw - var(--edge-space) * 2 - 126px);
+  }
+
   .menu-content {
+    position: fixed;
     top: calc(var(--edge-space) + 2em + var(--space-line) + var(--space-entity));
+    left: var(--edge-space);
   }
 
   .action-group {
     position: fixed;
-    left: var(--edge-space);
-    bottom: calc(var(--edge-space) + 32px);
+    top: var(--edge-space);
+    right: var(--edge-space);
     z-index: 6;
     width: auto;
     gap: var(--space-entity);
   }
 
   .canvas-stage {
-    padding: 22px var(--edge-space);
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    padding: calc(var(--edge-space) + 58px) var(--edge-space) calc(var(--edge-space) + 84px);
   }
 
   .site-footer {
-    font-size: 12px;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0 var(--edge-space) var(--edge-space);
+    font-size: 14px;
     line-height: calc(1em + var(--space-line));
     max-width: calc(100vw - var(--edge-space) * 2);
   }
 
   canvas {
     --canvas-max-width: calc(100vw - var(--edge-space) * 2);
-    --canvas-height-budget: calc(100vh - 270px);
+    --canvas-height-budget: calc(100dvh - 190px);
   }
 
 }
