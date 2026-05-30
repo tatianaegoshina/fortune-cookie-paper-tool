@@ -457,7 +457,7 @@ canvas.is-dragging {
   .action-group {
     position: fixed;
     left: var(--edge-space);
-    bottom: calc(var(--edge-space) + 32px);
+    bottom: calc(var(--edge-space) + 68px);
     z-index: 6;
     width: auto;
     gap: var(--space-entity);
@@ -483,7 +483,7 @@ canvas.is-dragging {
 
   canvas {
     --canvas-max-width: calc(100vw - var(--edge-space) * 2);
-    --canvas-height-budget: calc(100dvh - 190px);
+    --canvas-height-budget: calc(100dvh - 230px);
   }
 
 }
