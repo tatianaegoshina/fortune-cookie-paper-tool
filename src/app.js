@@ -74,7 +74,7 @@ function getRandomRange(min, max) {
 
 function getRandomPaperRotation() {
   const direction = Math.random() < 0.5 ? -1 : 1;
-  return Number((direction * getRandomRange(5, 20)).toFixed(2));
+  return direction * Math.round(getRandomRange(5, 20));
 }
 
 function getRandomFolds() {
@@ -187,7 +187,7 @@ function normalizeDegrees(degrees) {
 }
 
 function formatDegrees(degrees) {
-  return Number(normalizeDegrees(degrees).toFixed(2));
+  return Math.round(normalizeDegrees(degrees));
 }
 
 function degreesToRadians(degrees) {
@@ -1090,7 +1090,7 @@ paperRotationInput.addEventListener("input", () => {
   if (rawRotation === "" || rawRotation === "-" || rawRotation === "." || rawRotation === "-.") return;
 
   const { width, height } = getPaperSize();
-  const nextRotation = Number(rawRotation);
+  const nextRotation = Math.round(Number(rawRotation));
   if (!Number.isFinite(nextRotation)) return;
 
   pushHistory();
