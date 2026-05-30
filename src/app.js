@@ -6,26 +6,28 @@ const framePresets = [
 ];
 
 const palette = [
-  { name: "white", hex: "#ffffff" },
-  { name: "light grey", hex: "#DBDBDB" },
-  { name: "grey", hex: "#919191" },
-  { name: "almost black", hex: "#242424" },
-  { name: "black", hex: "#000000" },
-  { name: "orange", hex: "#FF7214" },
-  { name: "red", hex: "#F82D2D" },
-  { name: "pink", hex: "#FBB1CC" },
-  { name: "plum", hex: "#BC008D" },
-  { name: "bright blue", hex: "#289BFF" },
-  { name: "green", hex: "#05A95E" },
+  { name: "White", hex: "#ffffff" },
+  { name: "Light grey", hex: "#DBDBDB" },
+  { name: "Grey", hex: "#919191" },
+  { name: "Almost black", hex: "#242424" },
+  { name: "Black", hex: "#000000" },
+  { name: "Orange", hex: "#FF7214" },
+  { name: "Red", hex: "#F82D2D" },
+  { name: "Pink", hex: "#FBB1CC" },
+  { name: "Plum", hex: "#BC008D" },
+  { name: "Bright blue", hex: "#289BFF" },
+  { name: "Green", hex: "#05A95E" },
 ];
 
-const backgroundPalette = [...palette, { name: "transparent", hex: "transparent" }];
+const backgroundPalette = [...palette, { name: "Transparent", hex: "transparent" }];
 const corners = ["tl", "tr", "br", "bl"];
 const minFoldRatio = 0.018;
 const maxFoldReachShare = 2.2;
 const maxFoldAspect = 7;
 const foldEdgeGapRatio = 0.012;
-const textDarkColors = new Set(["white", "light grey", "pink", "orange", "green"]);
+const defaultPaperWidth = 1100;
+const defaultPaperHeight = 250;
+const textDarkColors = new Set(["White", "Light grey", "Pink", "Orange", "Green"]);
 const fortunes = [
   "The luck is already looking for you.",
   "Don’t confuse rest with failure.",
@@ -73,10 +75,22 @@ function getRandomFolds() {
   );
 }
 
+function getDefaultPaperForFrame(frame) {
+  const aspectRatio = defaultPaperWidth / defaultPaperHeight;
+  const width = Math.min(defaultPaperWidth, frame.width * 0.92, frame.height * 0.42 * aspectRatio);
+
+  return {
+    mode: "custom",
+    width: Math.round(width),
+    height: Math.round(width / aspectRatio),
+    rotation: 0,
+  };
+}
+
 function createDefaultState() {
   return {
     frame: framePresets[0],
-    paper: { mode: "custom", width: 1100, height: 250, rotation: 0 },
+    paper: getDefaultPaperForFrame(framePresets[0]),
     background: palette[6],
     front: palette[7],
     back: palette[8],
@@ -89,6 +103,9 @@ function createDefaultState() {
 let state = createDefaultState();
 let loadedImage = null;
 let imageSrc = null;
+let backgroundImage = null;
+let backgroundImageSrc = null;
+let imageUploadTarget = "paper";
 let dragHandle = null;
 let hoverHandle = null;
 let history = [];
@@ -158,6 +175,8 @@ function snapshotState() {
     state: cloneState(state),
     imageSrc,
     loadedImage,
+    backgroundImageSrc,
+    backgroundImage,
   };
 }
 
@@ -644,18 +663,51 @@ function wrapText(ctx, text, maxWidth) {
   });
 }
 
-function getPaperTextLayout(ctx, paperWidth, paperHeight) {
-  const fontSize = clamp(state.textSize, 12, Math.min(paperWidth, paperHeight) * 0.42);
+function setTextFont(ctx, fontSize) {
   ctx.font = `${fontSize}px "GT Ultra Median", Georgia, serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   if ("letterSpacing" in ctx) ctx.letterSpacing = `${fontSize * -0.006}px`;
+}
 
-  const lines = wrapText(ctx, state.text, paperWidth * 0.78);
+function measureTextLayout(ctx, fontSize, maxWidth) {
+  setTextFont(ctx, fontSize);
+  const lines = wrapText(ctx, state.text, maxWidth);
   const lineHeight = fontSize * 0.98;
-  const startY = paperHeight / 2 - ((lines.length - 1) * lineHeight) / 2;
+  const textHeight = (lines.length - 1) * lineHeight + fontSize;
+  const maxLineWidth = Math.max(...lines.map((line) => ctx.measureText(line).width), 0);
 
-  return { fontSize, lines, lineHeight, startY, maxWidth: paperWidth * 0.78 };
+  return { fontSize, lines, lineHeight, textHeight, maxLineWidth };
+}
+
+function getPaperTextLayout(ctx, paperWidth, paperHeight) {
+  const maxWidth = paperWidth * 0.78;
+  const maxHeight = paperHeight * 0.74;
+  const maxFontSize = clamp(state.textSize, 12, Math.min(paperWidth, paperHeight) * 0.42);
+  let low = 12;
+  let high = maxFontSize;
+  let layout = measureTextLayout(ctx, low, maxWidth);
+
+  for (let index = 0; index < 18; index += 1) {
+    const candidateSize = (low + high) / 2;
+    const candidate = measureTextLayout(ctx, candidateSize, maxWidth);
+    const fits = candidate.textHeight <= maxHeight && candidate.maxLineWidth <= maxWidth;
+
+    if (fits) {
+      low = candidateSize;
+      layout = candidate;
+    } else {
+      high = candidateSize;
+    }
+  }
+
+  setTextFont(ctx, layout.fontSize);
+
+  return {
+    ...layout,
+    startY: paperHeight / 2 - ((layout.lines.length - 1) * layout.lineHeight) / 2,
+    maxWidth,
+  };
 }
 
 function isTextHit(local) {
@@ -725,8 +777,10 @@ function renderComposition(targetCanvas, showGuides, renderScale = targetCanvas 
   targetCanvas.width = Math.round(frame.width * renderScale);
   targetCanvas.height = Math.round(frame.height * renderScale);
   if (targetCanvas === canvas) {
+    targetCanvas.style.setProperty("--frame-width", frame.width);
+    targetCanvas.style.setProperty("--frame-height", frame.height);
+    targetCanvas.style.setProperty("--frame-ratio", frame.width / frame.height);
     targetCanvas.style.aspectRatio = `${frame.width} / ${frame.height}`;
-    targetCanvas.style.width = `${frame.width}px`;
     targetCanvas.style.height = "auto";
   }
   ctx.setTransform(renderScale, 0, 0, renderScale, 0, 0);
@@ -738,6 +792,7 @@ function renderComposition(targetCanvas, showGuides, renderScale = targetCanvas 
     ctx.fillStyle = state.background.hex;
     ctx.fillRect(0, 0, frame.width, frame.height);
   }
+  if (backgroundImage) drawCoverImage(ctx, backgroundImage, 0, 0, frame.width, frame.height);
 
   ctx.save();
   ctx.translate(frame.width / 2, frame.height / 2);
@@ -816,7 +871,9 @@ function syncControls() {
       makeButton(preset.label, state.frame.label === preset.label, () => {
         applyChange(() => {
           state.frame = preset;
+          state.paper = getDefaultPaperForFrame(preset);
           state.textSize = preset.textSize;
+          state.folds = getRandomFolds();
           constrainCurrentPaperRotation();
         });
       }),
@@ -824,13 +881,13 @@ function syncControls() {
   );
 
   paperModeOptions.replaceChildren(
-    makeButton("fill", state.paper.mode === "fill", () => {
+    makeButton("Fill", state.paper.mode === "fill", () => {
       applyChange(() => {
         state.paper.mode = "fill";
         constrainCurrentPaperRotation();
       });
     }),
-    makeButton("custom", state.paper.mode === "custom", () => {
+    makeButton("Custom", state.paper.mode === "custom", () => {
       applyChange(() => {
         state.paper.mode = "custom";
         state.paper.width = state.frame.width;
@@ -973,6 +1030,8 @@ function reset() {
     state = createDefaultState();
     loadedImage = null;
     imageSrc = null;
+    backgroundImage = null;
+    backgroundImageSrc = null;
   });
 }
 
@@ -1023,14 +1082,32 @@ imageInput.addEventListener("change", async () => {
   const file = imageInput.files?.[0];
   if (!file) return;
   pushHistory();
-  imageSrc = await readFileAsDataUrl(file);
-  loadedImage = await loadImage(imageSrc);
+  const src = await readFileAsDataUrl(file);
+  const image = await loadImage(src);
+  if (imageUploadTarget === "background") {
+    backgroundImageSrc = src;
+    backgroundImage = image;
+  } else {
+    imageSrc = src;
+    loadedImage = image;
+  }
   imageInput.value = "";
   syncControls();
   renderComposition(canvas, true);
 });
 
-document.querySelector("[data-action='load-image']").addEventListener("click", () => imageInput.click());
+document.querySelectorAll("[data-action='load-image']").forEach((button) =>
+  button.addEventListener("click", () => {
+    imageUploadTarget = "paper";
+    imageInput.click();
+  }),
+);
+document.querySelectorAll("[data-action='load-background-image']").forEach((button) =>
+  button.addEventListener("click", () => {
+    imageUploadTarget = "background";
+    imageInput.click();
+  }),
+);
 document.querySelectorAll("[data-action='reset']").forEach((button) => button.addEventListener("click", reset));
 document.querySelector("[data-action='export']").addEventListener("click", exportPng);
 undoButton.addEventListener("click", () => {
@@ -1039,6 +1116,8 @@ undoButton.addEventListener("click", () => {
   state = cloneState(snapshot.state);
   imageSrc = snapshot.imageSrc;
   loadedImage = snapshot.loadedImage;
+  backgroundImageSrc = snapshot.backgroundImageSrc;
+  backgroundImage = snapshot.backgroundImage;
   syncControls();
   renderComposition(canvas, true);
 });

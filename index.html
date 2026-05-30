@@ -18,19 +18,17 @@
             </div>
           </details>
 
-          <button type="button" class="nav-command" data-action="load-image">Image</button>
-
           <details class="menu-panel">
             <summary>Paper size</summary>
             <div class="menu-content">
               <div class="segmented" data-paper-mode-options></div>
               <div class="number-row" data-paper-custom-fields>
                 <label>
-                  w
+                  W
                   <input id="paper-width" type="number" min="80" />
                 </label>
                 <label>
-                  h
+                  H
                   <input id="paper-height" type="number" min="80" />
                 </label>
               </div>
@@ -42,7 +40,7 @@
             <div class="menu-content compact-content">
               <div class="number-row">
                 <label>
-                  angle
+                  Angle
                   <input id="paper-rotation" type="number" />
                 </label>
               </div>
@@ -52,6 +50,7 @@
           <details class="menu-panel">
             <summary>Color</summary>
             <div class="menu-content">
+              <button type="button" class="select-button" data-action="load-image">Image</button>
               <div class="swatch-grid" data-front-options></div>
             </div>
           </details>
@@ -66,6 +65,7 @@
           <details class="menu-panel">
             <summary>Background</summary>
             <div class="menu-content">
+              <button type="button" class="select-button" data-action="load-background-image">Image</button>
               <div class="swatch-grid" data-background-options></div>
             </div>
           </details>
@@ -75,7 +75,7 @@
             <div class="menu-content compact-content">
               <div class="number-row">
                 <label>
-                  size
+                  Size
                   <input id="text-size" type="number" min="1" />
                 </label>
               </div>
