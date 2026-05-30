@@ -1081,9 +1081,15 @@ paperHeightInput.addEventListener("input", () => {
 });
 
 paperRotationInput.addEventListener("input", () => {
-  pushHistory();
+  const rawRotation = paperRotationInput.value.trim();
+  if (rawRotation === "" || rawRotation === "-" || rawRotation === "." || rawRotation === "-.") return;
+
   const { width, height } = getPaperSize();
-  state.paper.rotation = constrainPaperRotation(Number(paperRotationInput.value) || 0, width, height);
+  const nextRotation = Number(rawRotation);
+  if (!Number.isFinite(nextRotation)) return;
+
+  pushHistory();
+  state.paper.rotation = constrainPaperRotation(nextRotation, width, height);
   syncControls();
   renderComposition(canvas, true);
 });
