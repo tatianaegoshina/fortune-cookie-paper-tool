@@ -10,6 +10,8 @@
 
 :root {
   --edge-space: clamp(18px, 3.4vw, 40px);
+  --space-line: 10px;
+  --space-entity: 15px;
   --ui-grey: #666666;
   --ui-light-grey: #a8a8a8;
   --ui-almost-black: #242424;
@@ -67,7 +69,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: clamp(18px, 2vw, 34px);
+  gap: var(--space-entity);
   min-height: 0;
   padding: var(--edge-space) var(--edge-space) 0;
   color: var(--ui-grey);
@@ -89,7 +91,7 @@ button {
 .menu-group {
   display: flex;
   align-items: center;
-  gap: clamp(18px, 2vw, 34px);
+  gap: var(--space-entity);
   min-width: 0;
 }
 
@@ -167,7 +169,7 @@ button {
   width: max-content;
   min-width: 120px;
   max-width: min(720px, calc(100vw - 48px));
-  gap: 10px 20px;
+  gap: var(--space-line) var(--space-entity);
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -184,7 +186,7 @@ button {
 }
 
 .numeric-menu {
-  gap: 10px 12px;
+  gap: var(--space-line) var(--space-entity);
 }
 
 .button-grid,
@@ -378,14 +380,16 @@ canvas.is-dragging {
   .topbar {
     flex-wrap: wrap;
     align-items: flex-start;
-    row-gap: 14px;
+    row-gap: var(--space-entity);
     font-size: 14px;
   }
 
   .topbar > .menu-group:not(.action-group) {
+    flex: 0 0 100%;
     flex-wrap: wrap;
+    max-width: 100%;
     width: 100%;
-    row-gap: 12px;
+    row-gap: var(--space-line);
   }
 
   .action-group {
@@ -413,18 +417,22 @@ canvas.is-dragging {
   }
 
   .topbar {
-    gap: 14px 18px;
+    gap: var(--space-line) var(--space-entity);
     font-size: 14px;
     white-space: normal;
+  }
+
+  .menu-content {
+    top: calc(var(--edge-space) + 2em + var(--space-line) + var(--space-entity));
   }
 
   .action-group {
     position: fixed;
     left: var(--edge-space);
-    bottom: calc(var(--edge-space) + 54px);
+    bottom: calc(var(--edge-space) + 32px);
     z-index: 6;
     width: auto;
-    gap: 18px;
+    gap: var(--space-entity);
   }
 
   .canvas-stage {
@@ -433,7 +441,7 @@ canvas.is-dragging {
 
   .site-footer {
     font-size: 12px;
-    line-height: 1.45;
+    line-height: calc(1em + var(--space-line));
     max-width: calc(100vw - var(--edge-space) * 2);
   }
 
