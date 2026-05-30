@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fortune cookie paper tool</title>
-    <link rel="stylesheet" href="./src/styles.css?v=20260530-ui-16" />
+    <link rel="stylesheet" href="./src/styles.css?v=20260530-ui-17" />
   </head>
   <body>
     <main class="app-shell">
@@ -48,6 +48,14 @@
           </details>
 
           <details class="menu-panel">
+            <summary>Background</summary>
+            <div class="menu-content">
+              <button type="button" class="select-button" data-action="load-background-image">Image</button>
+              <div class="swatch-grid" data-background-options></div>
+            </div>
+          </details>
+
+          <details class="menu-panel">
             <summary>Color</summary>
             <div class="menu-content">
               <button type="button" class="select-button" data-action="load-image">Image</button>
@@ -59,14 +67,6 @@
             <summary>Folds</summary>
             <div class="menu-content compact-content">
               <div class="swatch-grid" data-back-options></div>
-            </div>
-          </details>
-
-          <details class="menu-panel">
-            <summary>Background</summary>
-            <div class="menu-content">
-              <button type="button" class="select-button" data-action="load-background-image">Image</button>
-              <div class="swatch-grid" data-background-options></div>
             </div>
           </details>
 
