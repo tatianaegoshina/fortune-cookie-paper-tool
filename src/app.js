@@ -28,6 +28,30 @@ const foldEdgeGapRatio = 0.012;
 const defaultPaperWidth = 1100;
 const defaultPaperHeight = 250;
 const textDarkColors = new Set(["White", "Light grey", "Pink", "Orange", "Green"]);
+const randomColorWeights = {
+  White: 1,
+  "Light grey": 1,
+  Grey: 1,
+  "Almost black": 1,
+  Orange: 4,
+  Red: 4,
+  Pink: 4,
+  Plum: 4,
+  Blue: 4,
+  Green: 4,
+};
+const randomPaperPairs = {
+  Red: ["Orange", "White", "Light grey", "Pink", "Plum", "Blue"],
+  White: ["Light grey", "Grey", "Almost black", "Orange", "Red", "Pink", "Plum", "Blue", "Green"],
+  "Light grey": ["White", "Grey", "Almost black", "Orange", "Red", "Pink", "Plum", "Blue", "Green"],
+  Grey: ["White", "Almost black", "Pink", "Plum"],
+  "Almost black": ["White", "Light grey", "Grey", "Orange", "Red", "Pink", "Plum", "Blue", "Green"],
+  Orange: ["White", "Light grey", "Almost black", "Red", "Pink", "Plum"],
+  Pink: ["White", "Almost black", "Orange", "Red", "Plum", "Green"],
+  Plum: ["White", "Light grey", "Grey", "Almost black", "Orange", "Red", "Pink", "Blue", "Green"],
+  Blue: ["White", "Light grey", "Almost black", "Pink", "Plum", "Blue"],
+  Green: ["White", "Light grey", "Almost black", "Pink", "Plum", "Blue"],
+};
 const fortunes = [
   "Buy new shoes. The story needs them.",
   "Don’t confuse rest with failure.",
@@ -66,6 +90,32 @@ const fortunes = [
 
 function getRandomFortune() {
   return fortunes[Math.floor(Math.random() * fortunes.length)];
+}
+
+function getPaletteColor(name) {
+  return palette.find((color) => color.name === name);
+}
+
+function getWeightedRandomColorName(names) {
+  const totalWeight = names.reduce((sum, name) => sum + (randomColorWeights[name] ?? 1), 0);
+  let target = Math.random() * totalWeight;
+
+  for (const name of names) {
+    target -= randomColorWeights[name] ?? 1;
+    if (target <= 0) return name;
+  }
+
+  return names[names.length - 1];
+}
+
+function getRandomPaperColors() {
+  const frontName = getWeightedRandomColorName(Object.keys(randomPaperPairs));
+  const backName = getWeightedRandomColorName(randomPaperPairs[frontName]);
+
+  return {
+    front: getPaletteColor(frontName),
+    back: getPaletteColor(backName),
+  };
 }
 
 function getRandomRange(min, max) {
@@ -116,12 +166,14 @@ function getDefaultPaperForFrame(frame) {
 }
 
 function createDefaultState() {
+  const paperColors = getRandomPaperColors();
+
   return {
     frame: framePresets[0],
     paper: getDefaultPaperForFrame(framePresets[0]),
-    background: palette[6],
-    front: palette[7],
-    back: palette[8],
+    background: getPaletteColor("Black"),
+    front: paperColors.front,
+    back: paperColors.back,
     text: getRandomFortune(),
     textSize: framePresets[0].textSize,
     folds: getRandomFolds(),
@@ -1069,41 +1121,143 @@ function reset() {
   });
 }
 
-paperWidthInput.addEventListener("input", () => {
-  pushHistory();
-  state.paper.width = Number(paperWidthInput.value) || 80;
+function applyPaperWidthValue(value, options = {}) {
+  if (!Number.isFinite(value)) return;
+  if (options.saveHistory !== false) pushHistory();
+  state.paper.width = Math.round(clamp(value, 80, state.frame.width * 2));
   constrainCurrentPaperRotation();
   syncControls();
   renderComposition(canvas, true);
+}
+
+function applyPaperHeightValue(value, options = {}) {
+  if (!Number.isFinite(value)) return;
+  if (options.saveHistory !== false) pushHistory();
+  state.paper.height = Math.round(clamp(value, 80, state.frame.height * 2));
+  constrainCurrentPaperRotation();
+  syncControls();
+  renderComposition(canvas, true);
+}
+
+function applyPaperRotationValue(value, options = {}) {
+  const { width, height } = getPaperSize();
+  if (options.saveHistory !== false) pushHistory();
+  state.paper.rotation = constrainPaperRotation(value, width, height);
+  syncControls();
+  renderComposition(canvas, true);
+}
+
+function applyTextSizeValue(value, options = {}) {
+  if (options.saveHistory !== false) pushHistory();
+  state.textSize = clamp(value, 1, 999);
+  if (textInput.classList.contains("is-editing")) openTextEditor(false, false);
+  syncControls();
+  renderComposition(canvas, true);
+}
+
+function setupNumberDrag(input, { getValue, setValue, min = -Infinity, max = Infinity, step = 1, pixelsPerStep = 8 }) {
+  let suppressClick = false;
+  input.dataset.dragNumber = "true";
+
+  input.addEventListener("click", (event) => {
+    if (!suppressClick) return;
+    event.preventDefault();
+    suppressClick = false;
+  });
+
+  input.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+
+    const startY = event.clientY;
+    const startValue = getValue();
+    let isDragging = false;
+    let lastValue = startValue;
+
+    const stopDrag = () => {
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", stopDrag);
+      document.removeEventListener("pointercancel", stopDrag);
+      document.body.classList.remove("is-number-dragging");
+      suppressClick = isDragging;
+    };
+
+    const onPointerMove = (moveEvent) => {
+      const deltaY = startY - moveEvent.clientY;
+      if (!isDragging && Math.abs(deltaY) < 3) return;
+
+      const nextValue = clamp(startValue + Math.round(deltaY / pixelsPerStep) * step, min, max);
+      if (nextValue === lastValue) return;
+
+      if (!isDragging) {
+        isDragging = true;
+        pushHistory();
+        input.blur();
+        document.body.classList.add("is-number-dragging");
+      }
+
+      moveEvent.preventDefault();
+      lastValue = nextValue;
+      setValue(nextValue);
+    };
+
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", stopDrag);
+    document.addEventListener("pointercancel", stopDrag);
+  });
+}
+
+paperWidthInput.addEventListener("input", () => {
+  applyPaperWidthValue(Number(paperWidthInput.value) || 80);
 });
 
 paperHeightInput.addEventListener("input", () => {
-  pushHistory();
-  state.paper.height = Number(paperHeightInput.value) || 80;
-  constrainCurrentPaperRotation();
-  syncControls();
-  renderComposition(canvas, true);
+  applyPaperHeightValue(Number(paperHeightInput.value) || 80);
 });
 
 paperRotationInput.addEventListener("input", () => {
   const rawRotation = paperRotationInput.value.trim();
   if (rawRotation === "" || rawRotation === "-" || rawRotation === "." || rawRotation === "-.") return;
 
-  const { width, height } = getPaperSize();
   const nextRotation = Math.round(Number(rawRotation));
   if (!Number.isFinite(nextRotation)) return;
 
-  pushHistory();
-  state.paper.rotation = constrainPaperRotation(nextRotation, width, height);
-  syncControls();
-  renderComposition(canvas, true);
+  applyPaperRotationValue(nextRotation);
 });
 
 textSizeInput.addEventListener("input", () => {
-  pushHistory();
-  state.textSize = clamp(Number(textSizeInput.value) || 1, 1, 999);
-  if (textInput.classList.contains("is-editing")) openTextEditor(false, false);
-  renderComposition(canvas, true);
+  applyTextSizeValue(Number(textSizeInput.value) || 1);
+});
+
+setupNumberDrag(paperRotationInput, {
+  getValue: getPaperRotation,
+  setValue: (value) => applyPaperRotationValue(value, { saveHistory: false }),
+  min: -180,
+  max: 180,
+});
+
+setupNumberDrag(paperWidthInput, {
+  getValue: () => Math.round(state.paper.width),
+  setValue: (value) => applyPaperWidthValue(value, { saveHistory: false }),
+  min: 80,
+  max: framePresets.reduce((maxWidth, frame) => Math.max(maxWidth, frame.width * 2), 0),
+  step: 10,
+  pixelsPerStep: 6,
+});
+
+setupNumberDrag(paperHeightInput, {
+  getValue: () => Math.round(state.paper.height),
+  setValue: (value) => applyPaperHeightValue(value, { saveHistory: false }),
+  min: 80,
+  max: framePresets.reduce((maxHeight, frame) => Math.max(maxHeight, frame.height * 2), 0),
+  step: 10,
+  pixelsPerStep: 6,
+});
+
+setupNumberDrag(textSizeInput, {
+  getValue: () => Math.round(state.textSize),
+  setValue: (value) => applyTextSizeValue(value, { saveHistory: false }),
+  min: 1,
+  max: 999,
 });
 
 textInput.addEventListener("input", () => {

@@ -232,6 +232,15 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
+input[type="number"][data-drag-number="true"],
+body.is-number-dragging {
+  cursor: ns-resize;
+}
+
+body.is-number-dragging {
+  user-select: none;
+}
+
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   margin: 0;
