@@ -49,7 +49,7 @@ const randomPaperPairs = {
   Orange: ["White", "Light grey", "Almost black", "Red", "Pink", "Plum"],
   Pink: ["White", "Almost black", "Orange", "Red", "Plum", "Green"],
   Plum: ["White", "Light grey", "Grey", "Almost black", "Orange", "Red", "Pink", "Blue", "Green"],
-  Blue: ["White", "Light grey", "Almost black", "Pink", "Plum", "Blue"],
+  Blue: ["White", "Light grey", "Almost black", "Pink", "Plum"],
   Green: ["White", "Light grey", "Almost black", "Pink", "Plum", "Blue"],
 };
 const fortunes = [
@@ -110,7 +110,7 @@ function getWeightedRandomColorName(names) {
 
 function getRandomPaperColors() {
   const frontName = getWeightedRandomColorName(Object.keys(randomPaperPairs));
-  const backName = getWeightedRandomColorName(randomPaperPairs[frontName]);
+  const backName = getWeightedRandomColorName(randomPaperPairs[frontName].filter((name) => name !== frontName));
 
   return {
     front: getPaletteColor(frontName),
